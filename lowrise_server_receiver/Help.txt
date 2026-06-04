@@ -1,0 +1,10 @@
+step 1. Run the XAMP App
+- Start the "Apache"
+- Start the "Mysql"
+
+Step2. open the lowrise_server_reciever folder and run the node
+- npm run dev
+
+
+Step3. Connect the Sensor and Visit the link for Testing of Sensor
+- http://192.168.10.12/monitorlow/#/home

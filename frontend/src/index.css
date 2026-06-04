@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+@layer base {
+  html, body {
+    @apply h-screen overflow-hidden bg-[#dde1e7];
+    font-family: 'Inter', sans-serif;
+  }
+
+  /* Custom scrollbar for history list */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}

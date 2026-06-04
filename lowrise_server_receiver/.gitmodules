@@ -1,0 +1,4 @@
+[submodule "lowrise_server_2020"]
+	path = lowrise_server_2020
+	url = https://bitbucket.org/usher2019/lowrise_server_2020.git
+	branch = deploy
