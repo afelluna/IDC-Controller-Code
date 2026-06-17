@@ -29,8 +29,9 @@ export interface HistogramDataPoint {
   color: string;
 }
 
-export interface VelocityDataPoint {
+export interface SeismogramDataPoint {
   time: number;
-  velocity: number;
-  velocityNeg: number;
+  x: number;
+  y: number;
+  z: number;
 }

@@ -3,7 +3,7 @@
  * This file will be removed once the Laravel API is connected.
  */
 
-import type { SeismicAlert, HistogramDataPoint, VelocityDataPoint, StatusItem } from '../types';
+import type { SeismicAlert, HistogramDataPoint, SeismogramDataPoint, StatusItem } from '../types';
 
 export const MOCK_HISTORY: SeismicAlert[] = [
   { id: '1', date: 'Mar 23, Thu', time: '14:08', intensity: 7, acceleration: '0.25 g', isCritical: true },
@@ -22,20 +22,21 @@ export const MOCK_HISTOGRAM_DATA: HistogramDataPoint[] = [
   { week: 'W8', value: 95, color: '#000000' },
 ];
 
-// Generate a wave-like pattern for the velocity chart
-export function generateVelocityData(): VelocityDataPoint[] {
+// Generate a wave-like pattern for the seismogram chart
+export function generateSeismogramData(): SeismogramDataPoint[] {
   return Array.from({ length: 100 }, (_, i) => {
     const x = (i / 100) * Math.PI * 10;
-    const y = Math.sin(x) * Math.exp(-Math.pow((i - 50) / 20, 2)) * 8;
+    const y = Math.sin(x) * Math.exp(-Math.pow((i - 50) / 20, 2));
     return {
       time: i,
-      velocity: y,
-      velocityNeg: -y,
+      x: y,
+      y: y * 0.8,
+      z: y * 0.5,
     };
   });
 }
 
-export const MOCK_VELOCITY_DATA = generateVelocityData();
+export const MOCK_VELOCITY_DATA = generateSeismogramData();
 
 export const MOCK_STATUS: StatusItem[] = [
   { label: 'Connection Status', value: 'Connected', status: 'connected' },

@@ -1,12 +1,71 @@
 @import "tailwindcss";
 
+/* ─── Design Tokens: Light Mode (default) ─────────────────────────────────── */
+:root {
+  /* Surfaces */
+  --bg-base:        #f4f6f9;
+  --bg-surface:     #ffffff;
+  --bg-elevated:    #f1f4f8;
+
+  /* Borders */
+  --border-subtle:  rgba(0, 0, 0, 0.05);
+  --border-default: rgba(0, 0, 0, 0.09);
+
+  /* Text */
+  --text-primary:   #1e293b;
+  --text-secondary: #64748b;
+  --text-muted:     #94a3b8;
+
+  /* Brand */
+  --brand:          #0869d9;
+  --brand-dim:      #dbeafe;
+
+  /* Semantic Status — calm, non-alarming palette */
+  --status-live:    #16a34a;   /* green-600   — confirmed signal */
+  --status-init:    #6366f1;   /* indigo-500  — scanning / loading */
+  --status-warn:    #d97706;   /* amber-600   — offline / degraded */
+  --status-error:   #dc2626;   /* red-600     — only true errors */
+
+  /* Card elevation */
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+/* ─── Design Tokens: Dark Mode ────────────────────────────────────────────── */
+[data-theme="dark"] {
+  --bg-base:        #0f1117;
+  --bg-surface:     #161b27;
+  --bg-elevated:    #1e2538;
+  --border-subtle:  rgba(255, 255, 255, 0.05);
+  --border-default: rgba(255, 255, 255, 0.09);
+  --text-primary:   #e2e8f0;
+  --text-secondary: #64748b;
+  --text-muted:     #374151;
+  --brand:          #3b82f6;
+  --brand-dim:      rgba(59, 130, 246, 0.15);
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
 @layer base {
-  html, body {
-    @apply h-screen overflow-hidden bg-[#dde1e7];
+  /* ─── Base Layout ─────────────────────────────────────────────────────── */
+  html, body, #root {
+    width: 100%;
+    height: 100%;
+    min-width: 800px;
+    min-height: 440px;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: var(--bg-base);
     font-family: 'Inter', sans-serif;
+    transition: background-color 0.3s ease;
   }
 
-  /* Custom scrollbar for history list */
+  /* Monospace font utility */
+  .font-mono {
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+  }
+
+  /* Custom scrollbar hiding */
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }

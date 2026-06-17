@@ -10,6 +10,8 @@ interface UseWebSocketState {
   nodeName: string | null;
 }
 
+const useMocks = import.meta.env.VITE_USE_MOCKS === 'true';
+
 export const useWebSocket = (
   onSeismicEvent?: (event: SeismicEvent) => void
 ): UseWebSocketState => {
@@ -30,6 +32,16 @@ export const useWebSocket = (
 
   useEffect(() => {
     let isMounted = true;
+
+    if (useMocks) {
+      setState({
+        connected: true,
+        error: null,
+        lastEvent: null,
+        nodeName: 'Demo-Node-01'
+      });
+      return;
+    }
 
     const initSocket = async () => {
       try {
