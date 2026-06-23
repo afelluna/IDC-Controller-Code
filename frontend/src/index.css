@@ -1,33 +1,59 @@
 @import "tailwindcss";
 
+/* ==========================================================================
+   Unified Resilience Platform (URP) — Design Tokens
+   Source: URP Brand Guidelines / urp-usher-wehlo/brand-tokens.css
+   ========================================================================== */
+
 /* ─── Design Tokens: Light Mode (default) ─────────────────────────────────── */
 :root {
-  /* Surfaces */
-  --bg-base:        #f4f6f9;
-  --bg-surface:     #ffffff;
-  --bg-elevated:    #f1f4f8;
+  /* URP raw palette */
+  --color-green:    #46A51C;   /* URP Green — active / success / live */
+  --color-blue:     #2D61D3;   /* URP Blue  — primary / brand accent */
+  --color-teal:     #6DC4BA;   /* URP Teal  — secondary / scanning */
+  --color-black:    #000000;
+  --color-grey:     #545454;
+  --color-white:    #FFFFFF;
+
+  /* Surfaces (legacy names kept, remapped to URP) */
+  --bg-base:        #f5f7fa;   /* page canvas (off-white) */
+  --bg-surface:     #ffffff;   /* card / panel */
+  --bg-elevated:    #f8fafc;   /* inset chart wells */
+  --surface-page:   #f5f7fa;
+  --surface-card:   #ffffff;
 
   /* Borders */
-  --border-subtle:  rgba(0, 0, 0, 0.05);
-  --border-default: rgba(0, 0, 0, 0.09);
+  --border-subtle:  #eef1f5;
+  --border-default: #e2e8f0;
+  --border-focus:   #2d61d3;
 
   /* Text */
-  --text-primary:   #1e293b;
-  --text-secondary: #64748b;
-  --text-muted:     #94a3b8;
+  --text-primary:   #000000;
+  --text-secondary: #545454;
+  --text-muted:     #9ba8b8;
+  --text-on-accent: #ffffff;
 
   /* Brand */
-  --brand:          #0869d9;
-  --brand-dim:      #dbeafe;
+  --brand:          #2d61d3;
+  --brand-dim:      #ebf5ff;
 
-  /* Semantic Status — calm, non-alarming palette */
-  --status-live:    #16a34a;   /* green-600   — confirmed signal */
-  --status-init:    #6366f1;   /* indigo-500  — scanning / loading */
-  --status-warn:    #d97706;   /* amber-600   — offline / degraded */
-  --status-error:   #dc2626;   /* red-600     — only true errors */
+  /* Semantic Status — URP-aligned, calm palette */
+  --status-live:    #46a51c;   /* URP green   — confirmed signal / active */
+  --status-init:    #6dc4ba;   /* URP teal    — scanning / loading */
+  --status-warn:    #f59e0b;   /* amber       — threshold / degraded */
+  --status-error:   #ef4444;   /* red         — reserved, true errors only */
+  --status-idle:    #9ba8b8;   /* muted grey  — offline / stale */
+
+  /* Radius */
+  --radius-sm:      4px;
+  --radius-md:      8px;
+  --radius-lg:      12px;
+  --radius-xl:      16px;
+  --radius-full:    9999px;
 
   /* Card elevation */
-  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.06);
+  --shadow-xs:      0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-card:    0 1px 4px rgba(0, 0, 0, 0.07);
 }
 
 /* ─── Design Tokens: Dark Mode ────────────────────────────────────────────── */
@@ -35,14 +61,16 @@
   --bg-base:        #0f1117;
   --bg-surface:     #161b27;
   --bg-elevated:    #1e2538;
+  --surface-page:   #0f1117;
+  --surface-card:   #161b27;
   --border-subtle:  rgba(255, 255, 255, 0.05);
   --border-default: rgba(255, 255, 255, 0.09);
   --text-primary:   #e2e8f0;
-  --text-secondary: #64748b;
-  --text-muted:     #374151;
-  --brand:          #3b82f6;
-  --brand-dim:      rgba(59, 130, 246, 0.15);
-  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --text-secondary: #94a3b8;
+  --text-muted:     #64748b;
+  --brand:          #2d61d3;
+  --brand-dim:      rgba(45, 97, 211, 0.15);
+  --shadow-card:    0 4px 24px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
 @layer base {
@@ -56,11 +84,14 @@
     padding: 0;
     overflow: hidden;
     background-color: var(--bg-base);
-    font-family: 'Inter', sans-serif;
+    color: var(--text-primary);
+    font-family: 'Poppins', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     transition: background-color 0.3s ease;
   }
 
-  /* Monospace font utility */
+  /* Monospace font utility (numeric readouts) */
   .font-mono {
     font-family: 'JetBrains Mono', 'Courier New', monospace;
   }
@@ -73,4 +104,29 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+}
+
+/* ==========================================================================
+   URP UTILITY CLASSES — minimalist, Google-style helpers
+   ========================================================================== */
+
+/* Status dot — small colored indicator, no filled pills */
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+.status-dot.live    { background-color: var(--status-live); }
+.status-dot.scanning{ background-color: var(--status-init); }
+.status-dot.idle    { background-color: var(--status-idle); }
+.status-dot.error   { background-color: var(--status-error); }
+
+/* Summary metric tile */
+.summary-card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
 }

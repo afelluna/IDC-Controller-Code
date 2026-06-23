@@ -16,12 +16,14 @@ export function Card({ children, className, style }: CardProps) {
   return (
     <div
       className={cn(
-        'rounded-2xl overflow-hidden flex flex-col',
+        'overflow-hidden flex flex-col',
         className
       )}
       style={{
-        backgroundColor: 'var(--bg-surface)',
+        backgroundColor: 'var(--surface-card)',
+        borderRadius: 'var(--radius-lg)',
         boxShadow: 'var(--shadow-card)',
+        border: '1px solid var(--border-default)',
         ...style,
       }}
     >
