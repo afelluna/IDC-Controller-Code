@@ -7,17 +7,17 @@ import type {
   ApiError,
 } from '../api/types';
 
-interface VelocityDataPoint {
-  time: number;
-  velocity: number;
-  velocityNeg: number;
-}
+// Import mock data for fallback
+import {
+  MOCK_HISTORY,
+} from '../data/mockData';
+
+const useMocks = import.meta.env.VITE_USE_MOCKS === 'true';
 
 interface UseSeismicDataState {
   currentData: SeismicDataResponse | null;
   history: SeismicHistoryResponse['alerts'];
   stats: SeismicStatsResponse | null;
-  velocityBuffer: VelocityDataPoint[];
   loading: boolean;
   error: ApiError | null;
 }
@@ -34,7 +34,6 @@ export const useSeismicData = (): UseSeismicDataState & UseSeismicDataActions =>
     currentData: null,
     history: [],
     stats: null,
-    velocityBuffer: [],
     loading: false,
     error: null,
   });
@@ -48,10 +47,6 @@ export const useSeismicData = (): UseSeismicDataState & UseSeismicDataActions =>
   };
 
   const setCurrentData = useCallback((data: any) => {
-    // Backend socket data might look like { intensity, x, y, z, ... }
-    // The nodeName event sends the full sensor data
-    const now = Date.now();
-    
     // Normalize data for currentData state
     const normalizedData: SeismicDataResponse = {
       intensity: data.intensity || 0,
@@ -59,26 +54,19 @@ export const useSeismicData = (): UseSeismicDataState & UseSeismicDataActions =>
       acceleration: Math.sqrt(Math.pow(data.x || 0, 2) + Math.pow(data.y || 0, 2) + Math.pow(data.z || 0, 2)),
       timestamp: new Date().toISOString(),
       device_id: data.nodename || 'unknown',
-      is_live: true
+      is_live: true,
+      raw: {
+        x: data.x || 0,
+        y: data.y || 0,
+        z: data.z || 0,
+        time: Date.now()
+      }
     };
 
-    setState(prev => {
-      // Append to velocity buffer (rolling 60s)
-      const newPoint: VelocityDataPoint = {
-        time: now,
-        velocity: Math.abs(data.x || 0),
-        velocityNeg: -Math.abs(data.y || 0), // Simulating negative for visual effect as per component
-      };
-      
-      const cutoff = now - 60000;
-      const newBuffer = [...prev.velocityBuffer, newPoint].filter(p => p.time > cutoff);
-      
-      return {
-        ...prev,
-        currentData: normalizedData,
-        velocityBuffer: newBuffer
-      };
-    });
+    setState(prev => ({
+      ...prev,
+      currentData: normalizedData,
+    }));
   }, []);
 
   const refreshHistory = useCallback(async () => {
@@ -88,7 +76,22 @@ export const useSeismicData = (): UseSeismicDataState & UseSeismicDataActions =>
       const history = (response.data as any)?.history || [];
       setState(prev => ({ ...prev, history, error: null }));
     } catch (error) {
-      setError(error as ApiError);
+      if (useMocks) {
+        setState(prev => ({ 
+          ...prev, 
+          history: MOCK_HISTORY.map(alert => ({
+            id: alert.id,
+            intensity: alert.intensity,
+            acceleration: parseFloat(alert.acceleration.replace(' m/s²', '')),
+            timestamp: new Date().toISOString(),
+            device_id: 'device-001',
+            created_at: new Date().toISOString(),
+          })),
+          error: null 
+        }));
+      } else {
+        setError(error as ApiError);
+      }
     }
   }, []);
 
@@ -98,7 +101,6 @@ export const useSeismicData = (): UseSeismicDataState & UseSeismicDataActions =>
       const response = await seismicApi.getStorageInfo();
       const storageData = response.data as any;
       
-      // Convert bytes to GB
       const GB = 1024 * 1024 * 1024;
       
       setState(prev => ({ 
@@ -115,7 +117,23 @@ export const useSeismicData = (): UseSeismicDataState & UseSeismicDataActions =>
         error: null, 
       }));
     } catch (error) {
-      setError(error as ApiError);
+      if (useMocks) {
+        setState(prev => ({
+          ...prev,
+          stats: {
+            total_alerts: 156,
+            critical_alerts: 12,
+            last_alert: new Date().toISOString(),
+            storage_used: 1.2,
+            storage_total: 2.0,
+            devices_online: 1,
+            devices_total: 1,
+          },
+          error: null
+        }));
+      } else {
+        setError(error as ApiError);
+      }
     }
   }, []);
 
@@ -137,8 +155,58 @@ export const useSeismicData = (): UseSeismicDataState & UseSeismicDataActions =>
   useEffect(() => {
     refreshAll();
     const interval = setInterval(refreshAll, 30000);
-    return () => clearInterval(interval);
-  }, [refreshAll]);
+
+    // Simulation for demo mode
+    let simInterval;
+    if (useMocks) {
+      let tick = 0;
+      simInterval = setInterval(() => {
+        tick++;
+        // Base noise (PEIS 1, <0.0017)
+        // Add a bit more "jaggedness" with a secondary high-frequency noise component
+        const baseNoise = Math.random() * 0.0008;
+        const jitter = (Math.random() - 0.5) * 0.0004;
+        let accelTarget = baseNoise + jitter;
+        let intensity = 1;
+
+        // Create occasional spikes every 10 seconds (at 100ms intervals, this is every 100 ticks)
+        if (tick % 100 === 0) {
+          // Randomly choose an intensity level from 2 to 7
+          intensity = Math.floor(Math.random() * 6) + 2; 
+          
+          if (intensity === 2) accelTarget = 0.0017 + Math.random() * (0.005 - 0.0017);
+          else if (intensity === 3) accelTarget = 0.005 + Math.random() * (0.014 - 0.005);
+          else if (intensity === 4) accelTarget = 0.014 + Math.random() * (0.039 - 0.014);
+          else if (intensity === 5) accelTarget = 0.039 + Math.random() * (0.092 - 0.039);
+          else if (intensity === 6) accelTarget = 0.092 + Math.random() * (0.18 - 0.092);
+          else if (intensity === 7) accelTarget = 0.18 + Math.random() * (0.34 - 0.18);
+        }
+
+        // Randomly distribute acceleration magnitude across x, y, z axes with higher variance
+        const rx = (Math.random() - 0.5) * 2;
+        const ry = (Math.random() - 0.5) * 2;
+        const rz = (Math.random() - 0.5) * 2;
+        const mag = Math.sqrt(rx * rx + ry * ry + rz * rz) || 1;
+        
+        const x = (rx / mag) * accelTarget;
+        const y = (ry / mag) * accelTarget;
+        const z = (rz / mag) * accelTarget;
+
+        setCurrentData({
+          intensity,
+          x,
+          y,
+          z,
+          nodename: 'Demo-Node-01'
+        });
+      }, 100); // 100ms updates (10Hz) for jagged look
+    }
+
+    return () => {
+      clearInterval(interval);
+      if (simInterval) clearInterval(simInterval);
+    };
+  }, [refreshAll, setCurrentData]);
 
   return {
     ...state,

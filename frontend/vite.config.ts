@@ -11,6 +11,7 @@ export default defineConfig(({mode}) => {
         '@': path.resolve(__dirname, '.'),
       },
     },
+    base: '/new-monitor/',
     build: {
       outDir: '../monitor',
       emptyOutDir: true,

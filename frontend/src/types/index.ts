@@ -9,12 +9,6 @@ export interface SeismicAlert {
   isCritical?: boolean;
 }
 
-export interface StatusItem {
-  label: string;
-  value: string;
-  status?: 'connected' | 'warning' | 'error' | 'neutral';
-}
-
 export interface IntensityScaleItem {
   level: number;
   label: string;
@@ -23,14 +17,9 @@ export interface IntensityScaleItem {
   text: string;
 }
 
-export interface HistogramDataPoint {
-  week: string;
-  value: number;
-  color: string;
-}
-
-export interface VelocityDataPoint {
+export interface SeismogramDataPoint {
   time: number;
-  velocity: number;
-  velocityNeg: number;
+  x: number;
+  y: number;
+  z: number;
 }

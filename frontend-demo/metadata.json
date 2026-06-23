@@ -1,0 +1,5 @@
+{
+  "name": "Seismic Monitor Dashboard",
+  "description": "A professional real-time seismic activity monitoring dashboard with intensity alerts, velocity charts, and status tracking.",
+  "requestFramePermissions": []
+}
