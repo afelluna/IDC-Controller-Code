@@ -47,20 +47,25 @@ export const useSeismicData = (): UseSeismicDataState & UseSeismicDataActions =>
   };
 
   const setCurrentData = useCallback((data: any) => {
-    // Normalize data for currentData state
+    const x = data.x || 0;
+    const y = data.y || 0;
+    const z = data.z || 0;
     const normalizedData: SeismicDataResponse = {
       intensity: data.intensity || 0,
-      velocity: Math.max(Math.abs(data.x || 0), Math.abs(data.y || 0), Math.abs(data.z || 0)),
-      acceleration: Math.sqrt(Math.pow(data.x || 0, 2) + Math.pow(data.y || 0, 2) + Math.pow(data.z || 0, 2)),
-      timestamp: new Date().toISOString(),
-      device_id: data.nodename || 'unknown',
+      velocity: Math.max(Math.abs(x), Math.abs(y), Math.abs(z)),
+      // Use peak acceleration from the batch when available so the value shown
+      // in IntensityDisplay matches the PEIS threshold that triggered the level.
+      acceleration: data.peakAccel ?? Math.sqrt(x * x + y * y + z * z),
+      timestamp: data.timestamp ? new Date(data.timestamp).toISOString() : new Date().toISOString(),
+      device_id: data.nodename || 'sensor',
       is_live: true,
       raw: {
-        x: data.x || 0,
-        y: data.y || 0,
-        z: data.z || 0,
-        time: Date.now()
-      }
+        x,
+        y,
+        z,
+        time: data.timestamp || Date.now(),
+      },
+      rawSamples: data.samples || undefined,
     };
 
     setState(prev => ({

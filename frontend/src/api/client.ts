@@ -1,12 +1,15 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import type { BackendResponse, ApiError } from './types';
+import { getApiBase } from './runtimeConfig';
 
 class ApiClient {
   private client: AxiosInstance;
 
   constructor() {
     this.client = axios.create({
-      baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
+      // baseURL is resolved per-request from the runtime config (see below),
+      // so we don't pin it here — the axios singleton is built at import time,
+      // before config.json has loaded.
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
@@ -18,6 +21,13 @@ class ApiClient {
   }
 
   private setupInterceptors() {
+    // Request interceptor - resolve backend base URL at call time from the
+    // runtime config (config.json {ip,port}), matching the old Angular app.
+    this.client.interceptors.request.use((config) => {
+      config.baseURL = getApiBase();
+      return config;
+    });
+
     // Response interceptor - Normalize backend response format
     this.client.interceptors.response.use(
       (response: AxiosResponse) => {

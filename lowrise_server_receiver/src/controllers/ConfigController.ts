@@ -46,11 +46,24 @@ export class ConfigController{
 
   public async getSensorConfig(req: Request, res: Response, next: NextFunction){
     try {
-      
-        
       this.result = await db.query("SELECT * FROM config_tbl LIMIT 1");
 
-      responseHandler.sendResponse(res, "Successfuly fetch sensor config", 200, false, this.result[0]);
+      // Resolve the device's actual LAN IP at runtime so the frontend never shows 'localhost'
+      let server_ip: string | null = null;
+      const nets = os.networkInterfaces();
+      outer: for (const iface of Object.values(nets)) {
+        for (const addr of (iface || [])) {
+          if ((addr as any).family === 'IPv4' && !(addr as any).internal) {
+            server_ip = (addr as any).address;
+            break outer;
+          }
+        }
+      }
+
+      responseHandler.sendResponse(res, "Successfuly fetch sensor config", 200, false, {
+        ...this.result[0],
+        server_ip,
+      });
 
     } catch (err){
       logger.info("Error fetch sensor config "+err);

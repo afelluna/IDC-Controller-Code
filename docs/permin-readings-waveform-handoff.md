@@ -21,7 +21,7 @@ Each `permin` file is CSV, one sample per line, **no header**:
 ```
 0,1679951183498,-5.6451199e-05,0.001187783,0.000123583,1
 │ │             │              │           │           │
-│ │             │              │           │           └─ flag / sample-status (always 1 = valid)
+│ │             │              │           │           └─ PEIS intensity (firmware-derived int, ~1–10) — NOT a validity flag
 │ │             │              │           └─ Z axis acceleration (g)
 │ │             │              └─ Y axis acceleration (g)
 │ │             └─ X axis acceleration (g)
@@ -30,8 +30,17 @@ Each `permin` file is CSV, one sample per line, **no header**:
 ```
 
 **Units:** X/Y/Z are in **g-force (g)**, with the 1g gravity vector already removed (linear
-acceleration). Stationary readings hover around `±0.0003 g` (sensor noise). The 4th value is a
-status/sample flag — treat `1` as valid; ignore/skip non-`1` if they ever appear.
+acceleration). Stationary readings hover around `±0.0003 g` (sensor noise).
+
+> ⚠️ **The 6th column is the firmware's PEIS intensity level (a derived integer, ~1–10) — it is
+> NOT a validity flag.** An earlier version of this doc claimed it was "always 1 = valid"; that was
+> wrong and caused a real bug (verified 2026-06-18 against live device `7c4f9457…`). The running
+> firmware emits `2` at rest and higher values during stronger motion. **Do NOT filter samples on
+> this column** — doing so discards data by *intensity*: it nulls the whole pipeline at rest and
+> drops exactly the strong-motion samples you need during a real event. Treat **every** row as a
+> valid acceleration sample. Validate on **structure only** (correct field count, numeric X/Y/Z,
+> skip blank/malformed trailing lines). PEIS is recomputed on the frontend from `accel_x/y/z`
+> (see Pipeline A), so the per-sample col-6 value is redundant and is intentionally ignored.
 
 **Sample rate:** timestamps are ~2–4 ms apart → **~250–300 Hz raw waveform**. A one-minute file is
 roughly **~18,000 samples × 3 axes**. This volume is why raw samples must **not** be dumped directly
@@ -223,9 +232,9 @@ is moot for accel — but reconcile/annotate it so it isn't mistaken for the rea
 
 ### Jobs
 
-- **`ProcessPerminFile(deviceUuid, filePath)`** — parse CSV → skip non-`1` flag rows → 1-second buckets
-  → abs-max per axis → feed the existing ingest pipeline (`accel_x/y/z`). Leave the raw file on disk
-  (Pipeline B `/waveform` reads it).
+- **`ProcessPerminFile(deviceUuid, filePath)`** — parse CSV → keep **every** structurally-valid row
+  (do NOT filter on col 6 / PEIS) → 1-second buckets → abs-max per axis → feed the existing ingest
+  pipeline (`accel_x/y/z`). Leave the raw file on disk (Pipeline B `/waveform` reads it).
 - **`ProcessEventMaxFile(deviceUuid, eventId, filePath)`** — parse the same CSV format → store/index as
   an **event waveform** keyed by `eventId`, served through the waveform endpoint (by event). This is
   the event-capture seismogram shown for an alarm.
@@ -300,7 +309,9 @@ Confirm which the client should implement; both are served by the same `/wavefor
 - [ ] `ProcessEventMaxFile` parses the same CSV and indexes the event waveform by `eventId`.
 - [ ] PGA/PEIS computed on the **client** from `accel_x/y/z`; PEIS thresholds in one place;
       `accel_raw` dead reference fixed.
-- [ ] Parser handles epoch-ms timestamps, skips non-`1` flag rows, tolerates blank trailing lines.
+- [ ] Parser handles epoch-ms timestamps, tolerates blank/malformed trailing lines, and keeps **every**
+      structurally-valid row — it does **NOT** filter on col 6 (that column is PEIS intensity, not a
+      validity flag; filtering on it nulls the pipeline at rest and drops strong-motion samples).
 - [ ] Pipeline A produces exactly 1 bucket/sec (3 readings/sec) with historical `recorded_at`.
 - [ ] Jobs are idempotent on re-upload/retry (readings dedupe on device + sensor + second; eventMax by
       `eventId`).
