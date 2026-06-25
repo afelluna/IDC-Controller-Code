@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Monitor, LogOut, Wrench } from 'lucide-react';
 import { useAuth } from '../auth/useAuth';
 import { ThresholdSettings } from '../components/admin/ThresholdSettings';
+import { PeisThresholdSettings } from '../components/admin/PeisThresholdSettings';
 import { ChangePassword } from '../components/admin/ChangePassword';
 import { EventList } from '../components/admin/EventList';
 
@@ -25,7 +26,10 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="min-h-screen font-sans" style={{ backgroundColor: 'var(--bg-base)' }}>
+    <div
+      className="h-screen overflow-y-auto font-sans"
+      style={{ backgroundColor: 'var(--bg-base)' }}
+    >
       {/* Header */}
       <header
         className="sticky top-0 z-10 px-4 sm:px-6 py-3 flex items-center justify-between"
@@ -66,6 +70,7 @@ export default function AdminPage() {
           <ThresholdSettings />
           <ChangePassword />
         </div>
+        <PeisThresholdSettings />
         <EventList />
       </main>
     </div>

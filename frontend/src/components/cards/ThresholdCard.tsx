@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { seismicApi } from '../../api/seismicApi';
 
 interface ThresholdConfig {
@@ -39,9 +39,9 @@ function fmtG(n: number): string {
 interface RowProps {
   color: string;
   bg: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
-  value: React.ReactNode;
+  value: ReactNode;
 }
 
 function Row({ color, bg, icon, label, value }: RowProps) {

@@ -9,11 +9,14 @@ import { IntensityLegend } from '../components/cards/IntensityLegend';
 import { Seismogram, type SeismogramHandle } from '../components/cards/Seismogram';
 import { StatusCard } from '../components/cards/StatusCard';
 import { StorageCard } from '../components/cards/StorageCard';
+import { AlertPopup } from '../components/alerts/AlertPopup';
 
 // Hooks
 import { useSeismicData } from '../hooks/useSeismicData';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useSeismicMetrics } from '../hooks/useSeismicMetrics';
+import { useThresholdAlert } from '../hooks/useThresholdAlert';
+import seismicApi from '../api/seismicApi';
 
 export default function MonitorPage() {
   // ─── Theme State ──────────────────────────────────────────────────────────
@@ -59,11 +62,34 @@ export default function MonitorPage() {
   // Live derived metrics from rolling 60s buffer
   const { peakAccel, dominantFreq, maxDisp } = useSeismicMetrics(currentData);
 
+  // ─── Signal-animation thresholds (from configured warning/alert levels) ───
+  // The intensity card's escalation follows the operator-set thresholds:
+  // breathing at the warning level, critical pulse+wave at the alert (warrant)
+  // level. Read once from /getSensorConfig (a plain GET — no backend change);
+  // fall back to the legacy 5/8 feel if the device is unreachable.
+  const [warningLevel, setWarningLevel] = useState(5);
+  const [alertLevel, setAlertLevel] = useState(8);
+
+  useEffect(() => {
+    seismicApi.getSensorConfig()
+      .then((res) => {
+        if (res.success && res.data) {
+          const d = res.data as any;
+          const warn = Number(d.warning);
+          const alert = Number(d.warrant);
+          if (Number.isFinite(warn) && warn > 0) setWarningLevel(warn);
+          // Keep alert at or above warning so tiers stay ordered.
+          if (Number.isFinite(alert) && alert > 0) setAlertLevel(Math.max(alert, warn || alert));
+        }
+      })
+      .catch(() => {/* keep the 5/8 fallback */});
+  }, []);
+
   // ─── Peak-hold display intensity ─────────────────────────────────────────
   // Mirrors the original RPi frontend: when PEIS rises, hold the peak level
   // for HOLD_MS before decaying to the current live level. Without this a
   // 1-2 batch tap (~1s) flashes and disappears before the user can read it.
-  const HOLD_MS = 3500;
+  const HOLD_MS = 5500;
   const [displayIntensity, setDisplayIntensity] = useState(0);
   const holdTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const peakHeldRef   = useRef(0);
@@ -84,6 +110,13 @@ export default function MonitorPage() {
       }, HOLD_MS);
     }
   }, [currentData?.intensity]);
+
+  // ─── Actionable earthquake alert popup ────────────────────────────────────
+  // Pops up PHIVOLCS protective-action instructions when the peak-held level
+  // crosses the configured alert (warrant) level; clears itself once shaking
+  // settles below the warning level. Reuses the levels already fetched above.
+  const { visible: alertVisible, peakLevel: alertPeak, dismiss: dismissAlert } =
+    useThresholdAlert(displayIntensity, alertLevel, warningLevel);
 
   // ─── Derived values ───────────────────────────────────────────────────────
   const storageUsed   = stats?.storage_used || 0;
@@ -170,6 +203,8 @@ export default function MonitorPage() {
             rawX={currentData?.raw?.x}
             rawY={currentData?.raw?.y}
             rawZ={currentData?.raw?.z}
+            warningLevel={warningLevel}
+            alertLevel={alertLevel}
           />
           <IntensityLegend currentLevel={displayIntensity} />
         </div>
@@ -182,6 +217,9 @@ export default function MonitorPage() {
         </div>
 
       </div>
+
+      {/* Full-screen actionable alert — overlays the dashboard when triggered */}
+      <AlertPopup open={alertVisible} level={alertPeak} onDismiss={dismissAlert} />
     </div>
   );
 }

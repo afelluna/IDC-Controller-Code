@@ -3,26 +3,13 @@ import { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 import seismicApi from '../api/seismicApi';
 import { getApiBase } from '../api/runtimeConfig';
+import { peisFromAccel, loadPeisBoundaries } from '../constants/peisConfig';
 
 // Extract just the hostname/IP from a URL string (e.g. "http://192.168.10.12:3000" → "192.168.10.12")
 function extractHost(url: string): string {
   try { return new URL(url).hostname; } catch { return url; }
 }
 
-// Sensor always hardcodes intensity field as 2. Compute PEIS level from peak
-// acceleration magnitude (m/s²) matching the original RPi frontend's thresholds.
-function peisFromAccel(accel: number): number {
-  if (accel < 0.0017) return 1;
-  if (accel < 0.005)  return 2;
-  if (accel < 0.014)  return 3;
-  if (accel < 0.039)  return 4;
-  if (accel < 0.092)  return 5;
-  if (accel < 0.18)   return 6;
-  if (accel < 0.34)   return 7;
-  if (accel < 0.65)   return 8;
-  if (accel < 1.2)    return 9;
-  return 10;
-}
 import type { SeismicEvent } from '../api/types';
 
 interface UseWebSocketState {
@@ -49,6 +36,9 @@ export const useWebSocket = (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const socketRef = useRef<any>(null);
   const onEventRef = useRef(onSeismicEvent);
+  // Admin-configurable PEIS cutoffs, read once from localStorage on mount.
+  // The monitor picks up /admin edits on its next reload (kiosk-acceptable).
+  const boundariesRef = useRef<number[]>(loadPeisBoundaries());
 
   // Keep ref updated to avoid stale closures in listeners
   useEffect(() => {
@@ -128,11 +118,12 @@ export const useWebSocket = (
             }));
 
             // Sensor always hardcodes intensity=2. Calculate PEIS from peak
-            // acceleration magnitude across all 125 samples in the batch.
+            // acceleration magnitude across all 125 samples in the batch, using
+            // the admin-configured boundaries (peisConfig.ts).
             const peakAccel = Math.max(...samples.map(s =>
               Math.sqrt(s.x * s.x + s.y * s.y + s.z * s.z)
             ));
-            const intensity = peisFromAccel(peakAccel);
+            const intensity = peisFromAccel(peakAccel, boundariesRef.current);
 
             const latest = samples[samples.length - 1];
             const seismicEvent: SeismicEvent = {

@@ -10,6 +10,10 @@ interface IntensityDisplayProps {
   rawX?: number;
   rawY?: number;
   rawZ?: number;
+  /** PEIS level at which the card begins the "breathing" signal (config warning level). */
+  warningLevel?: number;
+  /** PEIS level at which the card escalates to the critical pulse+wave (config alert/warrant level). */
+  alertLevel?: number;
 }
 
 function manilaTime(): string {
@@ -31,9 +35,30 @@ function fmtAxis(v: number | undefined): string {
   return `${sign}${v.toFixed(5)}`;
 }
 
-export function IntensityDisplay({ intensity, acceleration, rawX, rawY, rawZ }: IntensityDisplayProps) {
+/**
+ * Map a PEIS level to a signal tier driving the card's "alarm" animation.
+ * Escalation follows the operator-configured thresholds: breathing starts at the
+ * warning level, the critical pulse+wave starts at the alert (warrant) level.
+ */
+type SignalTier = 'calm' | 'elevated' | 'critical';
+function signalTier(level: number, warning: number, alert: number): SignalTier {
+  if (level >= alert) return 'critical';
+  if (level >= warning) return 'elevated';
+  return 'calm';
+}
+
+export function IntensityDisplay({
+  intensity,
+  acceleration,
+  rawX,
+  rawY,
+  rawZ,
+  warningLevel = 5,
+  alertLevel = 8,
+}: IntensityDisplayProps) {
   const currentIntensityData = INTENSITY_SCALE.find(i => i.level === intensity) || INTENSITY_SCALE[0];
   const msg = getIntensityMessage(intensity);
+  const tier = signalTier(intensity, warningLevel, alertLevel);
 
   const [clock, setClock] = useState(manilaTime());
   useEffect(() => {
@@ -43,11 +68,22 @@ export function IntensityDisplay({ intensity, acceleration, rawX, rawY, rawZ }: 
 
   return (
     <Card
-      className="relative flex-1 flex flex-col items-center justify-center p-4 min-h-0 overflow-hidden transition-colors duration-500"
+      className={`relative flex-1 flex flex-col items-center justify-center p-4 min-h-0 overflow-hidden transition-colors duration-500 ${tier === 'critical' ? 'peis-signal-critical' : ''}`}
       style={{ backgroundColor: currentIntensityData.color }}
     >
-      {/* Radial gradient overlay */}
+      {/* Radial gradient overlay (static base sheen) */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.4)_0%,_transparent_70%)] pointer-events-none" />
+
+      {/* Signal glow — breathes (elevated) or pulses (critical); calm = inert */}
+      {tier !== 'calm' && <div className={`peis-glow ${tier}`} aria-hidden="true" />}
+
+      {/* Expanding wave rings — critical tier only */}
+      {tier === 'critical' && (
+        <>
+          <div className="peis-wave" aria-hidden="true" />
+          <div className="peis-wave delay" aria-hidden="true" />
+        </>
+      )}
 
       {/* Manila timestamp — absolute top-left */}
       <span
@@ -86,7 +122,7 @@ export function IntensityDisplay({ intensity, acceleration, rawX, rawY, rawZ }: 
 
         {/* Large level number */}
         <span
-          className="font-black leading-none transition-colors duration-500 -mt-1"
+          className={`font-black leading-none transition-colors duration-500 -mt-1 ${tier === 'critical' ? 'peis-number-critical' : ''}`}
           style={{
             color: currentIntensityData.text,
             fontSize: 'clamp(52px, 13vh, 130px)',
