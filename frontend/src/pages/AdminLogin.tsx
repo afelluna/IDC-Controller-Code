@@ -1,8 +1,9 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, User, ShieldCheck, Loader2 } from 'lucide-react';
+import { Lock, User, Loader2 } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { useAuth } from '../auth/useAuth';
+import usherMarker from '../assets/usher-marker.svg';
 
 /**
  * Tech-support login. Posts to /loginUser; on success lands on /admin.
@@ -34,7 +35,7 @@ export default function AdminLogin() {
       if (res.ok) {
         navigate('/admin', { replace: true });
       } else {
-        setError(res.message || 'Invalid Account Login');
+        setError(res.message || 'Invalid username or password');
       }
     } catch {
       setError('Could not reach the device. Check the connection and try again.');
@@ -53,13 +54,13 @@ export default function AdminLogin() {
           {/* Header */}
           <div className="flex flex-col items-center text-center gap-2">
             <div
-              className="w-12 h-12 rounded-full flex items-center justify-center"
-              style={{ backgroundColor: 'var(--brand-dim)' }}
+              className="flex items-center justify-center rounded-xl px-3 h-12"
+              style={{ background: 'linear-gradient(135deg, #2D61D3 0%, #1d4ed8 100%)' }}
             >
-              <ShieldCheck size={22} style={{ color: 'var(--brand)' }} />
+              <img src={usherMarker} alt="USHER" className="h-6 w-auto brightness-0 invert" />
             </div>
             <h1 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>
-              Tech Support Access
+              Tech support access
             </h1>
             <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
               Sign in with the device administrator credentials to configure
@@ -126,7 +127,7 @@ export default function AdminLogin() {
               style={{ backgroundColor: 'var(--brand)', color: '#ffffff' }}
             >
               {loading && <Loader2 size={15} className="animate-spin" />}
-              {loading ? 'Signing in…' : 'Sign In'}
+              {loading ? 'Signing in…' : 'Sign in'}
             </button>
           </form>
         </div>

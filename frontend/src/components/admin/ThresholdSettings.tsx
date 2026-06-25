@@ -6,11 +6,11 @@ import { seismicApi } from '../../api/seismicApi';
 type Fields = 'warning' | 'warrant' | 'xthold' | 'ythold' | 'zthold';
 
 const FIELD_META: { key: Fields; label: string; hint: string; step: string }[] = [
-  { key: 'warning', label: 'Warning Level', hint: 'PEIS level that raises a warning', step: '1' },
-  { key: 'warrant', label: 'Alert Level', hint: 'PEIS level that raises an alert', step: '1' },
-  { key: 'xthold', label: 'X Threshold', hint: 'X-axis acceleration threshold (g)', step: '0.0001' },
-  { key: 'ythold', label: 'Y Threshold', hint: 'Y-axis acceleration threshold (g)', step: '0.0001' },
-  { key: 'zthold', label: 'Z Threshold', hint: 'Z-axis acceleration threshold (g)', step: '0.0001' },
+  { key: 'warning', label: 'Warning level', hint: 'PEIS level that raises a warning', step: '1' },
+  { key: 'warrant', label: 'Alert level', hint: 'PEIS level that raises an alert', step: '1' },
+  { key: 'xthold', label: 'X threshold', hint: 'X-axis acceleration threshold (g)', step: '0.0001' },
+  { key: 'ythold', label: 'Y threshold', hint: 'Y-axis acceleration threshold (g)', step: '0.0001' },
+  { key: 'zthold', label: 'Z threshold', hint: 'Z-axis acceleration threshold (g)', step: '0.0001' },
 ];
 
 type FormState = Record<Fields, string>;
@@ -91,7 +91,7 @@ export function ThresholdSettings() {
       >
         <SlidersHorizontal size={16} style={{ color: 'var(--brand)' }} />
         <h2 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-          Intensity Thresholds
+          Intensity thresholds
         </h2>
       </div>
 
@@ -148,7 +148,7 @@ export function ThresholdSettings() {
             style={{ backgroundColor: 'var(--brand)', color: '#ffffff' }}
           >
             {saving && <Loader2 size={15} className="animate-spin" />}
-            {saving ? 'Saving…' : 'Save Thresholds'}
+            {saving ? 'Saving…' : 'Save thresholds'}
           </button>
         </div>
       </form>

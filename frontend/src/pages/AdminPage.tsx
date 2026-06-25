@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Monitor, LogOut, Wrench } from 'lucide-react';
+import { Monitor, LogOut } from 'lucide-react';
 import { useAuth } from '../auth/useAuth';
+import usherMarker from '../assets/usher-marker.svg';
 import { ThresholdSettings } from '../components/admin/ThresholdSettings';
 import { PeisThresholdSettings } from '../components/admin/PeisThresholdSettings';
 import { ChangePassword } from '../components/admin/ChangePassword';
@@ -35,11 +36,16 @@ export default function AdminPage() {
         className="sticky top-0 z-10 px-4 sm:px-6 py-3 flex items-center justify-between"
         style={{ backgroundColor: 'var(--bg-surface)', boxShadow: 'var(--shadow-card)' }}
       >
-        <div className="flex items-center gap-2">
-          <Wrench size={18} style={{ color: 'var(--brand)' }} />
+        <div className="flex items-center gap-2.5">
+          <div
+            className="flex items-center justify-center rounded-lg px-2 h-9 shrink-0"
+            style={{ background: 'linear-gradient(135deg, #2D61D3 0%, #1d4ed8 100%)' }}
+          >
+            <img src={usherMarker} alt="USHER" className="h-5 w-auto brightness-0 invert" />
+          </div>
           <div className="flex flex-col leading-tight">
             <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-              Tech Support Dashboard
+              Tech support dashboard
             </span>
             <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
               Device configuration &amp; event log
@@ -59,7 +65,7 @@ export default function AdminPage() {
             className="rounded-lg px-3 py-2 text-xs font-semibold flex items-center gap-1.5 transition-colors"
             style={{ backgroundColor: 'var(--bg-elevated)', color: 'var(--text-secondary)' }}
           >
-            <LogOut size={14} /> Sign Out
+            <LogOut size={14} /> Sign out
           </button>
         </div>
       </header>
