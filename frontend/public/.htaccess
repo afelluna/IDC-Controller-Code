@@ -1,0 +1,16 @@
+# SPA fallback for the React app served under /new-monitor/ by Apache.
+# Without this, deep links like /new-monitor/admin 404 because no matching
+# file exists on disk — React Router handles those routes client-side.
+# Vite copies everything in public/ into the build output (monitor/).
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /new-monitor/
+
+  # Serve real files/directories as-is (assets, index.html, etc.)
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Everything else falls back to the SPA entry point.
+  RewriteRule ^ index.html [L]
+</IfModule>

@@ -39,6 +39,16 @@ export const seismicApi = {
   calibrate: (): Promise<BackendResponse<any>> =>
     apiClient.post('/calibrate'),
 
+  // Tech-support admin login. Backend plaintext-compares against
+  // config_tbl.admin_def_username / admin_def_pass. After the client.ts
+  // interceptor normalizes the response, a valid login is `success === true`.
+  loginUser: (username: string, password: string): Promise<BackendResponse<any>> =>
+    apiClient.post('/loginUser', { username, password }),
+
+  // Change the device admin password (config_tbl.admin_def_pass).
+  changePassword: (newpassword: string): Promise<BackendResponse<any>> =>
+    apiClient.post('/changePass', { newpassword }),
+
   // Get waveform data before an event
   getWaveformBefore: (eventId: string, path: string): Promise<BackendResponse<any>> =>
     apiClient.post('/getBefore', { eventId, path }),

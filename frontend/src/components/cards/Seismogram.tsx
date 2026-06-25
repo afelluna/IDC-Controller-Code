@@ -1,7 +1,7 @@
-import { useMemo, useRef, useEffect } from 'react';
+import { useMemo, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { Card } from '../ui/Card';
 import { UplotReact, UplotReactHandle } from '../ui/UplotReact';
-import type { SeismicDataResponse } from '../../api/types';
+import type { SeismicDataResponse, SensorSample } from '../../api/types';
 import uPlot from 'uplot';
 
 interface SeismogramProps {
@@ -9,7 +9,11 @@ interface SeismogramProps {
   isLive: boolean;
 }
 
-const MAX_DATAPOINTS = 200;
+export interface SeismogramHandle {
+  pushBatch: (samples: SensorSample[]) => void;
+}
+
+const MAX_DATAPOINTS = 2250;
 
 const AXES = [
   { label: 'X AXIS', stroke: '#ef4444', fill: 'rgba(239,68,68,0.25)' },
@@ -17,44 +21,99 @@ const AXES = [
   { label: 'Z AXIS', stroke: '#10b981', fill: 'rgba(16,185,129,0.20)' },
 ];
 
-export function Seismogram({ livePoint, isLive }: SeismogramProps) {
+export const Seismogram = forwardRef<SeismogramHandle, SeismogramProps>(
+function Accelerograph({ livePoint, isLive }, ref) {
   const chartRef = useRef<UplotReactHandle>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // High-performance rolling buffer for uPlot
   const chartDataRef = useRef<[number[], number[], number[], number[]]>([[], [], [], []]);
+  const rafRef = useRef<number>(0);
 
-  // Handle incoming live point
+  // Queue of samples waiting to be drained onto the chart
+  const pendingRef = useRef<SensorSample[]>([]);
+  // How many samples to drain per 16.7ms animation frame (~60fps).
+  // Recomputed on each batch so drain rate tracks actual sensor cadence.
+  const samplesPerFrameRef = useRef<number>(4);
+
+  // Drain callback — stable via ref to avoid closure issues inside rAF loop.
+  const drainRef = useRef<() => void>(() => {});
   useEffect(() => {
-    if (livePoint?.raw) {
-      const { time, x, y, z } = livePoint.raw;
-      const data = chartDataRef.current;
+    drainRef.current = () => {
+      rafRef.current = 0;
+      const pending = pendingRef.current;
+      if (!pending.length || !chartRef.current?.instance) return;
 
-      data[0].push(time / 1000);
-      data[1].push(x);
-      data[2].push(y);
-      data[3].push(z);
+      const count = Math.min(samplesPerFrameRef.current, pending.length);
+      const buf = chartDataRef.current;
+      for (let i = 0; i < count; i++) {
+        const s = pending.shift()!;
+        buf[0].push(s.timestamp / 1000);
+        buf[1].push(s.x);
+        buf[2].push(s.y);
+        buf[3].push(s.z);
+      }
+      const excess = buf[0].length - MAX_DATAPOINTS;
+      if (excess > 0) {
+        buf[0].splice(0, excess);
+        buf[1].splice(0, excess);
+        buf[2].splice(0, excess);
+        buf[3].splice(0, excess);
+      }
+      chartRef.current.instance.setData(buf);
 
-      if (data[0].length > MAX_DATAPOINTS) {
-        data[0].shift();
-        data[1].shift();
-        data[2].shift();
-        data[3].shift();
+      if (pending.length > 0) {
+        rafRef.current = requestAnimationFrame(() => drainRef.current());
+      }
+    };
+  }, []);
+
+  useImperativeHandle(ref, () => ({
+    pushBatch(samples: SensorSample[]) {
+      if (!samples.length) return;
+
+      // Compute drain rate: samples / frames-per-batch (at 60fps / 16.67ms)
+      if (samples.length > 1) {
+        const batchSpan = samples[samples.length - 1].timestamp - samples[0].timestamp || 545;
+        samplesPerFrameRef.current = Math.max(1, Math.ceil(samples.length / (batchSpan / 16.67)));
       }
 
-      if (chartRef.current?.instance) {
-        chartRef.current.instance.setData(data);
+      // Cap queue at 2 batches to prevent lag buildup; discard oldest excess
+      const cap = samples.length * 2;
+      if (pendingRef.current.length > cap) {
+        pendingRef.current.splice(0, pendingRef.current.length - cap);
       }
+      pendingRef.current.push(...samples);
+
+      // Start drain loop if not already running
+      if (!rafRef.current) {
+        rafRef.current = requestAnimationFrame(() => drainRef.current());
+      }
+    },
+  }));
+
+  // Single-point fallback (mock/demo mode only)
+  useEffect(() => {
+    if (!livePoint?.raw || livePoint.rawSamples?.length) return;
+    const { time, x, y, z } = livePoint.raw;
+    const buf = chartDataRef.current;
+    buf[0].push(time / 1000);
+    buf[1].push(x);
+    buf[2].push(y);
+    buf[3].push(z);
+    while (buf[0].length > MAX_DATAPOINTS) {
+      buf[0].shift(); buf[1].shift(); buf[2].shift(); buf[3].shift();
     }
+    if (chartRef.current?.instance) chartRef.current.instance.setData(buf);
   }, [livePoint]);
 
   const options: uPlot.Options = useMemo(() => ({
     width: 600,
     height: 300,
     padding: [8, 8, 0, 8],
+    legend: { show: false },
     cursor: {
-      show: true,
-      points: { show: false },
+      show: false,
     },
     select: { show: false },
     scales: {
@@ -101,6 +160,11 @@ export function Seismogram({ livePoint, isLive }: SeismogramProps) {
     ],
   }), []);
 
+  useEffect(() => () => {
+    cancelAnimationFrame(rafRef.current);
+    pendingRef.current = [];
+  }, []);
+
   // Resize handling via ResizeObserver
   useEffect(() => {
     if (!containerRef.current) return;
@@ -124,7 +188,7 @@ export function Seismogram({ livePoint, isLive }: SeismogramProps) {
           className="text-xs font-semibold uppercase tracking-widest"
           style={{ color: 'var(--text-secondary)' }}
         >
-          Seismogram
+          Accelerograph
         </h3>
       </div>
 
@@ -175,4 +239,5 @@ export function Seismogram({ livePoint, isLive }: SeismogramProps) {
       </div>
     </Card>
   );
-}
+});
+

@@ -518,11 +518,15 @@ export class UploadController{
 
       let paths = [config.LOGS_EVENT_DIR, config.LOGS_UPLOADED_EVENT_DIR, config.LOGS_PER_MIN_DIR];
 
-      let perminFileCount = fs.readdirSync(basePath+paths[2]);
+      const safeReaddir = (p: string): string[] => {
+        try { return fs.readdirSync(p); } catch { return []; }
+      };
+
+      let perminFileCount = safeReaddir(basePath+paths[2]);
 
       this.perminFileCount = perminFileCount.length;
 
-      let uploadedFile = fs.readdirSync(basePath+paths[1]);
+      let uploadedFile = safeReaddir(basePath+paths[1]);
 
       this.uploadedCount = uploadedFile.length;
 
@@ -534,7 +538,7 @@ export class UploadController{
 
         let lengthToFetch = this.fileCount - this.pathsList.length;
 
-        let unuploadedFile = fs.readdirSync(basePath+paths[0]);
+        let unuploadedFile = safeReaddir(basePath+paths[0]);
 
         this.unuploadedCount = unuploadedFile.length;
 

@@ -27,6 +27,14 @@ export interface PaginatedResponse<T> {
 }
 
 // Seismic Data API
+export interface SensorSample {
+  timestamp: number;
+  x: number;
+  y: number;
+  z: number;
+  intensity: number;
+}
+
 export interface SeismicDataResponse {
   intensity: number;
   velocity: number;
@@ -40,6 +48,7 @@ export interface SeismicDataResponse {
     z: number;
     time: number;
   };
+  rawSamples?: SensorSample[];
 }
 
 export interface SeismicHistoryResponse {

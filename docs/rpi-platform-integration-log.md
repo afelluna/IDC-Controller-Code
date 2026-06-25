@@ -49,7 +49,7 @@ is done in the platform.**
 CSV, one sample per line, no header:
 ```
 0,1679951183498,-5.6451199e-05,0.001187783,0.000123583,1
-│ │             │              │           │           └─ flag/status (1 = valid)
+│ │             │              │           │           └─ PEIS intensity (firmware int ~1–10) — NOT a validity flag
 │ │             │              │           └─ Z accel (g)
 │ │             │              └─ Y accel (g)
 │ │             └─ X accel (g)
@@ -58,6 +58,10 @@ CSV, one sample per line, no header:
 ```
 - **Units: g-force**, gravity vector already removed (values hover ±0.0003 g at rest).
 - **Sample rate ~250–300 Hz** → a 1-minute file ≈ ~18,000 samples × 3 axes.
+- ⚠️ **6th column is PEIS intensity, NOT a validity flag.** The old "1 = valid" reading was wrong
+  (live firmware emits `2` at rest, higher under motion) and broke Pipeline A — see the warning box
+  in `permin-readings-waveform-handoff.md`. **Never filter samples on this column;** keep every
+  structurally-valid row. PEIS is recomputed on the frontend from `accel_x/y/z`.
 
 ---
 
@@ -210,17 +214,35 @@ slow path is the opposite — synchronous parsing inside the request (blocks res
 
 ## 9. Current status
 
+**Updated 2026-06-19 — data flow verified live end-to-end against device `7c4f9457…` / `device_id=9`.**
+The full path (RPi capture → upload → queue job → parse → `readings` with current timestamps → REST
+API → broadcast wiring → all UI data sources) is green. See the bring-up journey in
+`docs/device-comms-data-flow-bringup.md`. Only the in-browser visual render and the Octane concurrency
+fix remain.
+
 | Item | Status |
 |---|---|
 | RPi `.env` redirected to platform | ✅ done, restarted |
-| Reachability RPi → platform (network/firewall/binding) | ✅ proven |
+| Reachability RPi → platform (network/firewall/binding) | ✅ proven (re-fixed 06-19: static IP `.13`, `0.0.0.0` bind) |
 | `node_token` auth + 3 ingest endpoints | ✅ built, audited, curl-verified |
-| Alarms end-to-end (DB + `AlarmsPanel`) | ✅ working |
-| permin → readings (charts/badges) | ⛔ not built (Pipeline A) |
-| Waveform API + seismogram | ⛔ not built (Pipeline B) |
-| eventMax `.log` parsing | ⛔ not built (stored as blob) |
-| Job architecture / queue processing | ⛔ not built |
-| Multi-worker server (Octane) | ⛔ not built (still `php artisan serve`) |
+| Alarms end-to-end (DB + `AlarmsPanel`) | ✅ working (50 rows, live) |
+| permin → readings (charts/badges) | ✅ **verified live** — Pipeline A feeding `accel_x/y/z`, current `recorded_at` |
+| Waveform API + seismogram | ✅ `/waveform` returns data (623 pts/axis/1h); seismogram render = pending visual confirm |
+| eventMax `.log` parsing | ✅ job built; **uploads intermittently `ETIMEDOUT`** pending Octane (§6) |
+| Job architecture / queue processing | ✅ working — `queue:work` running patched code, all `permin_logs` processed |
+| Multi-worker server (Octane) | ⛔ not built (still `php artisan serve`; eventMax timeout outstanding) |
+| Browser render (PEIS badge / charts / seismogram) | ◻️ pending manual visual confirm (last 1%) |
+
+### Resolved blockers (06-17 → 06-19 bring-up)
+Two bugs blocked the data flow after the endpoints were built; both fixed and verified live:
+1. **PEIS-flag filter** — the parser skipped all rows where CSV col 6 ≠ 1, but **col 6 is the firmware's
+   PEIS intensity, not a validity flag** (live firmware emits `2` at rest). Filtering on it nulled the
+   pipeline at rest. **Fix: never filter on col 6; keep every structurally-valid row.** See the warning
+   box in `docs/permin-readings-waveform-handoff.md`.
+2. **RPi clock / RTC freeze** — `recorded_at` was stamped ~2 days stale because the offline RPi's clock
+   drifted (no NTP) and its DS3231 RTC was never enabled in software. The frontend windows on
+   `recorded_at`, so data landed but rendered empty. **Fix: set the clock + enable the DS3231 overlay.**
+   See `docs/rpi-clock-rtc-fix.md`.
 
 ---
 
@@ -231,11 +253,20 @@ slow path is the opposite — synchronous parsing inside the request (blocks res
    vs pseudo-live polling. Both served by the same `/waveform` endpoint.
 
 **Checks to confirm during implementation:**
-2. **`/api/ingest` idempotency** — does it upsert/dedupe on `device + sensor + second`? If not, that's
-   a required fix so reprocessed/retried permin files don't double-insert.
+2. **`/api/ingest` idempotency** — dedupe on `device + sensor + second` appears to hold (live row
+   counts stayed stable under RPi retries), but not explicitly stress-tested. Confirm before relying on it.
 3. **PEIS thresholds** — keep in exactly one place on the client (likely already in `PEISScaleCard`).
 4. **Octane state safety** — verify `HighController`, `NodeTokenAuth`, `IngestController` hold no
-   per-request static state before running under Octane's in-memory model.
+   per-request static state before running under Octane's in-memory model. *(Still pending — Octane not
+   yet stood up.)*
+
+**Resolved during 06-19 bring-up (was open, now closed):**
+- ~~Col-6 = validity flag~~ → it's **PEIS intensity**; parser no longer filters on it.
+- ~~`recorded_at` staleness~~ → RPi clock corrected + DS3231 RTC enabled; timestamps now current.
+
+> **Architecture & deeper issues:** the user is compiling a separate list of problems noticed during
+> this activity (architecture, resilience, ops). Those will land in a **separate doc** — do not fold
+> them in here; this log stays the bring-up/data-flow record.
 
 **Known deferred / out of scope:**
 - True continuous real-time scrolling waveform (would need the original USHER Socket.IO high-freq path).
