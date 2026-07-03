@@ -9,13 +9,11 @@ import { IntensityLegend } from '../components/cards/IntensityLegend';
 import { Seismogram, type SeismogramHandle } from '../components/cards/Seismogram';
 import { StatusCard } from '../components/cards/StatusCard';
 import { StorageCard } from '../components/cards/StorageCard';
-import { AlertPopup } from '../components/alerts/AlertPopup';
 
 // Hooks
 import { useSeismicData } from '../hooks/useSeismicData';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useSeismicMetrics } from '../hooks/useSeismicMetrics';
-import { useThresholdAlert } from '../hooks/useThresholdAlert';
 import { seismicApi } from '../api/seismicApi';
 
 export default function MonitorPage() {
@@ -112,13 +110,6 @@ export default function MonitorPage() {
       }, HOLD_MS);
     }
   }, [currentData?.intensity]);
-
-  // ─── Actionable earthquake alert popup ────────────────────────────────────
-  // Pops up PHIVOLCS protective-action instructions when the peak-held level
-  // crosses the configured alert (warrant) level; clears itself once shaking
-  // settles below the warning level. Reuses the levels already fetched above.
-  const { visible: alertVisible, peakLevel: alertPeak, dismiss: dismissAlert } =
-    useThresholdAlert(displayIntensity, alertLevel, warningLevel);
 
   // ─── Derived values ───────────────────────────────────────────────────────
   const storageUsed   = stats?.storage_used || 0;
@@ -219,9 +210,6 @@ export default function MonitorPage() {
         </div>
 
       </div>
-
-      {/* Full-screen actionable alert — overlays the dashboard when triggered */}
-      <AlertPopup open={alertVisible} level={alertPeak} onDismiss={dismissAlert} />
     </div>
   );
 }

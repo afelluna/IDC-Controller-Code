@@ -67,7 +67,7 @@ function Tile({ icon, label, value, approximate, accentColor }: SummaryTile) {
       </div>
       <div className="min-w-0">
         <p
-          className="text-[10px] font-semibold uppercase tracking-widest leading-none mb-1"
+          className="text-[9px] font-semibold uppercase tracking-wide leading-tight mb-1"
           style={{ color: 'var(--text-secondary)' }}
         >
           {label}
@@ -87,10 +87,10 @@ function Tile({ icon, label, value, approximate, accentColor }: SummaryTile) {
 }
 
 export function SummaryCard({ peakAccel, noOfEvents, dominantFreq, maxDisp }: SummaryCardProps) {
-  const fmtAccel  = peakAccel > 0 ? `${peakAccel.toFixed(5)} m/s²` : '—';
+  const fmtAccel  = peakAccel > 0 ? peakAccel.toFixed(5) : '—';
   const fmtEvents = String(noOfEvents);
-  const fmtFreq   = dominantFreq !== null ? `${dominantFreq.toFixed(2)} Hz` : '—';
-  const fmtDisp   = maxDisp !== null ? `${(maxDisp * 1000).toFixed(3)} mm` : '—';
+  const fmtFreq   = dominantFreq !== null ? dominantFreq.toFixed(2) : '—';
+  const fmtDisp   = maxDisp !== null ? (maxDisp * 1000).toFixed(3) : '—';
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -101,10 +101,10 @@ export function SummaryCard({ peakAccel, noOfEvents, dominantFreq, maxDisp }: Su
         Summary
       </p>
 
-      <Tile icon={<IconActivity />}    label="Peak Acceleration"    value={fmtAccel}  accentColor="#2D61D3" />
-      <Tile icon={<IconCalendar />}    label="No. of Events"        value={fmtEvents} accentColor="#46A51C" />
-      <Tile icon={<IconWaves />}       label="Dominant Frequency"   value={fmtFreq}   approximate accentColor="#6DC4BA" />
-      <Tile icon={<IconArrowUpDown />} label="Max Displacement"     value={fmtDisp}   approximate accentColor="#F59E0B" />
+      <Tile icon={<IconActivity />}    label="Peak Acceleration (m/s²)"  value={fmtAccel}  accentColor="#2D61D3" />
+      <Tile icon={<IconCalendar />}    label="No. of Events"              value={fmtEvents} accentColor="#46A51C" />
+      <Tile icon={<IconWaves />}       label="Dominant Frequency (Hz)"    value={fmtFreq}   approximate accentColor="#6DC4BA" />
+      <Tile icon={<IconArrowUpDown />} label="Max Displacement (mm)"      value={fmtDisp}   approximate accentColor="#F59E0B" />
     </div>
   );
 }
