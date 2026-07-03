@@ -77,7 +77,11 @@ export const useSeismicData = (): UseSeismicDataState & UseSeismicDataActions =>
   const refreshHistory = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await seismicApi.getSeismicEvents();
+      // Use /getAllHistoryMax (eventMax/uploadedeventMax FILES) — the same
+      // endpoint the admin EventList reads. /getHistory scans eventMax as
+      // per-event DIRECTORIES (legacy layout) and returns nothing on the RPi,
+      // which is why the "No. of Events" count stayed 0 while admin filled.
+      const response = await seismicApi.getAllHistoryMax();
       const history = (response.data as any)?.history || [];
       setState(prev => ({ ...prev, history, error: null }));
     } catch (error) {

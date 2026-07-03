@@ -48,14 +48,14 @@ export function ChangePassword() {
       >
         <KeyRound size={16} style={{ color: 'var(--brand)' }} />
         <h2 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-          Change Admin Password
+          Change admin password
         </h2>
       </div>
 
       <form onSubmit={onSubmit} className="p-4 flex flex-col gap-3">
         <label className="flex flex-col gap-1">
           <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
-            New Password
+            New password
           </span>
           <input
             type="password"
@@ -74,7 +74,7 @@ export function ChangePassword() {
 
         <label className="flex flex-col gap-1">
           <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
-            Confirm Password
+            Confirm password
           </span>
           <input
             type="password"
@@ -113,7 +113,7 @@ export function ChangePassword() {
             style={{ backgroundColor: 'var(--brand)', color: '#ffffff' }}
           >
             {saving && <Loader2 size={15} className="animate-spin" />}
-            {saving ? 'Updating…' : 'Update Password'}
+            {saving ? 'Updating…' : 'Update password'}
           </button>
         </div>
       </form>

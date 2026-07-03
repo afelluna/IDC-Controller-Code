@@ -48,7 +48,7 @@ export function useAuth(): UseAuth {
       setAuthedState(true);
       return { ok: true, message: res.message };
     }
-    return { ok: false, message: res.message || 'Invalid Account Login' };
+    return { ok: false, message: res.message || 'Invalid username or password' };
   }, []);
 
   const logout = useCallback(() => {

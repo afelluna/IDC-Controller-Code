@@ -82,7 +82,7 @@ export function EventList() {
         <div className="flex items-center gap-2">
           <ListOrdered size={16} style={{ color: 'var(--brand)' }} />
           <h2 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-            Event Log
+            Event log
           </h2>
           <span className="text-[11px] font-mono" style={{ color: 'var(--text-muted)' }}>
             {filtered.length} event{filtered.length === 1 ? '' : 's'}

@@ -71,7 +71,7 @@ export function PeisThresholdSettings() {
       >
         <Activity size={16} style={{ color: 'var(--brand)' }} />
         <h2 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-          PEIS Scale Calibration
+          PEIS scale calibration
         </h2>
       </div>
 
@@ -152,7 +152,7 @@ export function PeisThresholdSettings() {
             className="rounded-lg px-4 py-2 text-sm font-semibold flex items-center gap-2 transition-opacity disabled:opacity-50"
             style={{ backgroundColor: 'var(--brand)', color: '#ffffff' }}
           >
-            Save Scale
+            Save scale
           </button>
         </div>
       </form>
