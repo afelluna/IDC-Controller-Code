@@ -16,7 +16,7 @@ import { useSeismicData } from '../hooks/useSeismicData';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useSeismicMetrics } from '../hooks/useSeismicMetrics';
 import { useThresholdAlert } from '../hooks/useThresholdAlert';
-import seismicApi from '../api/seismicApi';
+import { seismicApi } from '../api/seismicApi';
 
 export default function MonitorPage() {
   // ─── Theme State ──────────────────────────────────────────────────────────
@@ -34,7 +34,7 @@ export default function MonitorPage() {
   // ─── Seismic Data ─────────────────────────────────────────────────────────
   const {
     currentData,
-    history,
+    totalEvents,
     stats,
     loading,
     error,
@@ -89,7 +89,9 @@ export default function MonitorPage() {
   // Mirrors the original RPi frontend: when PEIS rises, hold the peak level
   // for HOLD_MS before decaying to the current live level. Without this a
   // 1-2 batch tap (~1s) flashes and disappears before the user can read it.
-  const HOLD_MS = 5500;
+  // 7s coordinates the on-screen hold with the backend buzzer/relay window
+  // (RpiModule.startRelaiInterval runs ~7s; the buzzer turns on at the same time).
+  const HOLD_MS = 7000;
   const [displayIntensity, setDisplayIntensity] = useState(0);
   const holdTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const peakHeldRef   = useRef(0);
@@ -121,7 +123,7 @@ export default function MonitorPage() {
   // ─── Derived values ───────────────────────────────────────────────────────
   const storageUsed   = stats?.storage_used || 0;
   const storageTotal  = stats?.storage_total || 0;
-  const noOfEvents    = history.length;
+  const noOfEvents    = totalEvents;
 
   // ─── Last-packet freshness tracking ──────────────────────────────────────
   const [lastPacketTime, setLastPacketTime] = useState<number | null>(null);

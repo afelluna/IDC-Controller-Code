@@ -68,7 +68,7 @@ export function IntensityDisplay({
 
   return (
     <Card
-      className={`relative flex-1 flex flex-col items-center justify-center p-4 min-h-0 overflow-hidden transition-colors duration-500 ${tier === 'critical' ? 'peis-signal-critical' : ''}`}
+      className="relative flex-1 flex flex-col min-h-0 overflow-hidden transition-colors duration-500"
       style={{ backgroundColor: currentIntensityData.color }}
     >
       {/* Radial gradient overlay (static base sheen) */}
@@ -87,80 +87,99 @@ export function IntensityDisplay({
 
       {/* Manila timestamp — absolute top-left */}
       <span
-        className="absolute top-2 left-3 z-20 font-mono text-[10px] tracking-wider"
-        style={{ color: currentIntensityData.text, opacity: 0.65 }}
+        className="absolute top-2.5 left-4 z-20 font-mono text-xs tracking-wider"
+        style={{ color: currentIntensityData.text, opacity: 0.7 }}
       >
+        <span className="font-sans font-bold uppercase tracking-[0.15em] text-[10px] opacity-90">TIMESTAMP:</span>{' '}
         {clock} PHT
       </span>
-
-      {/* USHER watermark — larger */}
-      <img
-        src={usherLogo}
-        alt=""
-        aria-hidden="true"
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-none object-contain pointer-events-none drop-shadow-md z-0"
-        style={{
-          width: 'clamp(140px, 35vh, 340px)',
-          height: 'clamp(140px, 35vh, 340px)',
-          opacity: 0.10,
-        }}
-      />
 
       <motion.div
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         key={intensity}
-        className="relative z-10 flex flex-col items-center justify-center gap-1 w-full"
+        className="relative z-10 flex-1 h-full w-full flex flex-col items-center justify-between gap-2 px-4 pt-9 pb-4"
       >
-        {/* "PEIS Level" label */}
-        <span
-          className="text-sm font-semibold uppercase tracking-[0.2em] opacity-70"
-          style={{ color: currentIntensityData.text }}
-        >
-          PEIS Level
-        </span>
+        {/* Subtitle + Large level number */}
+        <div className="flex flex-col items-center justify-center flex-1 w-full min-h-0">
+          {/* "PEIS Level" label */}
+          <span
+            className="font-bold uppercase tracking-[0.25em] opacity-80"
+            style={{
+              color: currentIntensityData.text,
+              fontSize: 'clamp(18px, 3vh, 32px)',
+            }}
+          >
+            PEIS Level
+          </span>
 
-        {/* Large level number */}
-        <span
-          className={`font-black leading-none transition-colors duration-500 -mt-1 ${tier === 'critical' ? 'peis-number-critical' : ''}`}
-          style={{
-            color: currentIntensityData.text,
-            fontSize: 'clamp(52px, 13vh, 130px)',
-            textShadow: intensity <= 2
-              ? '0 2px 12px rgba(0,0,0,0.10)'
-              : '0 2px 24px rgba(0,0,0,0.22)',
-          }}
-        >
-          {currentIntensityData.label || intensity}
-        </span>
+          {/* Large level number — shield watermark centered behind it */}
+          <span className="relative flex items-center justify-center">
+            <img
+              src={usherLogo}
+              alt=""
+              aria-hidden="true"
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-none object-contain pointer-events-none drop-shadow-md z-0"
+              style={{
+                width: 'clamp(220px, 60vh, 560px)',
+                height: 'clamp(220px, 60vh, 560px)',
+                opacity: 0.13,
+              }}
+            />
+            <span
+              className="relative z-10 font-black leading-none transition-colors duration-500"
+              style={{
+                color: currentIntensityData.text,
+                fontSize: 'clamp(90px, 24vh, 240px)',
+                textShadow: intensity <= 2
+                  ? '0 2px 12px rgba(0,0,0,0.10)'
+                  : '0 2px 24px rgba(0,0,0,0.22)',
+              }}
+            >
+              {currentIntensityData.label || intensity}
+            </span>
+          </span>
+        </div>
 
         {/* Message + acceleration */}
         <div
-          className="w-full max-w-lg backdrop-blur-md border rounded-2xl px-3 py-2 text-center shadow-2xl transition-all duration-500 flex flex-col gap-0.5"
+          className="w-full max-w-2xl backdrop-blur-md border rounded-2xl px-6 py-4 text-center shadow-2xl transition-all duration-500 flex flex-col gap-2"
           style={{
             backgroundColor: intensity > 2 ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.05)',
             borderColor:     intensity > 2 ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.1)',
             color: currentIntensityData.text,
           }}
         >
-          <h2 className="text-xs font-black uppercase tracking-tight leading-tight">
+          <h2
+            className="font-black uppercase tracking-tight leading-tight"
+            style={{ fontSize: 'clamp(18px, 2.6vh, 30px)' }}
+          >
             {msg.title}
           </h2>
           {acceleration != null && (
-            <span
-              className="inline-block self-center px-3 py-1 rounded-full font-mono text-xs font-semibold tracking-wide"
-              style={{
-                backgroundColor: intensity > 2 ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.08)',
-              }}
-            >
-              {acceleration.toFixed(5)} m/s²
-            </span>
+            <div className="flex flex-col items-center gap-1">
+              <span
+                className="font-bold uppercase tracking-[0.18em] opacity-70"
+                style={{ fontSize: 'clamp(9px, 1.4vh, 13px)' }}
+              >
+                Peak Ground Acceleration (PGA)
+              </span>
+              <span
+                className="inline-block self-center px-4 py-1.5 rounded-full font-mono font-semibold tracking-wide"
+                style={{
+                  backgroundColor: intensity > 2 ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.08)',
+                  fontSize: 'clamp(15px, 2.2vh, 24px)',
+                }}
+              >
+                {acceleration.toFixed(5)} g
+              </span>
+            </div>
           )}
         </div>
 
         {/* X / Y / Z axis values */}
         <div
-          className="mt-0.5 flex items-center gap-4"
+          className="flex items-center justify-center gap-8"
           style={{ color: currentIntensityData.text }}
         >
           {(
@@ -170,16 +189,16 @@ export function IntensityDisplay({
               { axis: 'Z', val: rawZ, color: '#10b981' },
             ] as const
           ).map(({ axis, val, color }) => (
-            <div key={axis} className="flex items-center gap-1">
+            <div key={axis} className="flex items-center gap-2">
               <span
-                className="text-[10px] font-bold uppercase"
-                style={{ color }}
+                className="font-bold uppercase"
+                style={{ color, fontSize: 'clamp(13px, 2vh, 20px)' }}
               >
                 {axis}
               </span>
               <span
-                className="font-mono text-[11px] font-semibold opacity-80"
-                style={{ color: currentIntensityData.text }}
+                className="font-mono font-semibold opacity-85"
+                style={{ color: currentIntensityData.text, fontSize: 'clamp(13px, 2vh, 20px)' }}
               >
                 {fmtAxis(val)}
               </span>

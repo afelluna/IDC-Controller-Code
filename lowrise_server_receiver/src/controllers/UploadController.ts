@@ -530,6 +530,13 @@ export class UploadController{
 
       this.uploadedCount = uploadedFile.length;
 
+      // Count unuploaded events up front so the total is always accurate.
+      // (Previously this was only computed inside the paging branch below, so
+      //  with >= fileCount uploaded events it kept returning a stale value.)
+      let unuploadedFile = safeReaddir(basePath+paths[0]);
+
+      this.unuploadedCount = unuploadedFile.length;
+
       uploadedFile.reverse();
 
       this.pathsList = this.mapArray(uploadedFile.slice(0, this.fileCount), basePath+paths[1], "uploaded");
@@ -537,10 +544,6 @@ export class UploadController{
       if (this.pathsList.length < this.fileCount) {
 
         let lengthToFetch = this.fileCount - this.pathsList.length;
-
-        let unuploadedFile = safeReaddir(basePath+paths[0]);
-
-        this.unuploadedCount = unuploadedFile.length;
 
         unuploadedFile.reverse();
 
@@ -599,7 +602,10 @@ export class UploadController{
               "history": paths,
               "unuploadedCount": this.unuploadedCount,
               "uploadedCount": this.uploadedCount,
-              "perminFileCount": this.perminFileCount
+              "perminFileCount": this.perminFileCount,
+              // True total event count (uploaded + unuploaded), independent of
+              // the fileCount-capped `history` page used by the event table.
+              "totalEvents": this.uploadedCount + this.unuploadedCount
             }
 
             responseHandler.sendResponse(res, "History fetched", 200, false, data);

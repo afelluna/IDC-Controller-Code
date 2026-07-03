@@ -63,7 +63,7 @@ export const useWebSocket = (
       try {
         // 1. GET /getSensorConfig → get nodeName + actual device IP
         const response = await seismicApi.getSensorConfig();
-        const nodename = (response.data as any).nodename;
+        const nodename = (response.data as any).node_name;
         const server_ip = (response.data as any).server_ip || null;
 
         if (!isMounted) return;
@@ -101,10 +101,10 @@ export const useWebSocket = (
           console.error('Socket.IO connection error:', err);
         });
 
-        // 3. The server re-broadcasts sensor data as io.emit("node", data) to all
-        //    browser clients. Data is a JSON-stringified array of samples:
+        // 3. The server re-broadcasts as io.emit(nodeName, data) — the event name IS
+        //    the node name (e.g. "usher02"). Data is a JSON-stringified array of samples:
         //    [[index, timestamp_ms, x, y, z, intensity], ...]
-        socket.on("node", (data: any) => {
+        socket.on(nodename, (data: any) => {
           try {
             const raw = typeof data === 'string' ? JSON.parse(data) : data;
             if (!Array.isArray(raw) || raw.length === 0) return;

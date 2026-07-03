@@ -37,7 +37,6 @@ export interface SensorSample {
 
 export interface SeismicDataResponse {
   intensity: number;
-  velocity: number;
   acceleration: number;
   timestamp: string;
   device_id: string;

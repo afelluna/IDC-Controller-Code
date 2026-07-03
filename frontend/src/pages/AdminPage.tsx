@@ -27,10 +27,7 @@ export default function AdminPage() {
   };
 
   return (
-    <div
-      className="h-screen overflow-y-auto font-sans"
-      style={{ backgroundColor: 'var(--bg-base)' }}
-    >
+    <div className="h-screen overflow-y-auto font-sans" style={{ backgroundColor: 'var(--bg-base)' }}>
       {/* Header */}
       <header
         className="sticky top-0 z-10 px-4 sm:px-6 py-3 flex items-center justify-between"

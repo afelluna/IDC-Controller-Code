@@ -17,6 +17,10 @@ const useMocks = import.meta.env.VITE_USE_MOCKS === 'true';
 interface UseSeismicDataState {
   currentData: SeismicDataResponse | null;
   history: SeismicHistoryResponse['alerts'];
+  // True total number of events on the device (uploaded + unuploaded).
+  // `history` is capped at the backend page size (fileCount), so its length
+  // is NOT a reliable event count — use this for "No. of Events".
+  totalEvents: number;
   stats: SeismicStatsResponse | null;
   loading: boolean;
   error: ApiError | null;
@@ -33,6 +37,7 @@ export const useSeismicData = (): UseSeismicDataState & UseSeismicDataActions =>
   const [state, setState] = useState<UseSeismicDataState>({
     currentData: null,
     history: [],
+    totalEvents: 0,
     stats: null,
     loading: false,
     error: null,
@@ -52,7 +57,6 @@ export const useSeismicData = (): UseSeismicDataState & UseSeismicDataActions =>
     const z = data.z || 0;
     const normalizedData: SeismicDataResponse = {
       intensity: data.intensity || 0,
-      velocity: Math.max(Math.abs(x), Math.abs(y), Math.abs(z)),
       // Use peak acceleration from the batch when available so the value shown
       // in IntensityDisplay matches the PEIS threshold that triggered the level.
       acceleration: data.peakAccel ?? Math.sqrt(x * x + y * y + z * z),
@@ -79,11 +83,18 @@ export const useSeismicData = (): UseSeismicDataState & UseSeismicDataActions =>
       setLoading(true);
       // Use /getAllHistoryMax (eventMax/uploadedeventMax FILES) — the same
       // endpoint the admin EventList reads. /getHistory scans eventMax as
-      // per-event DIRECTORIES (legacy layout) and returns nothing on the RPi,
-      // which is why the "No. of Events" count stayed 0 while admin filled.
+      // per-event DIRECTORIES (legacy layout) and returns nothing on the RPi.
       const response = await seismicApi.getAllHistoryMax();
-      const history = (response.data as any)?.history || [];
-      setState(prev => ({ ...prev, history, error: null }));
+      const d = response.data as any;
+      const history = d?.history || [];
+      // Prefer the backend's true total; fall back to the (capped) page length
+      // for older backends that don't send totalEvents.
+      const totalEvents = typeof d?.totalEvents === 'number'
+        ? d.totalEvents
+        : (typeof d?.uploadedCount === 'number' && typeof d?.unuploadedCount === 'number'
+            ? d.uploadedCount + d.unuploadedCount
+            : history.length);
+      setState(prev => ({ ...prev, history, totalEvents, error: null }));
     } catch (error) {
       if (useMocks) {
         setState(prev => ({ 
@@ -96,7 +107,8 @@ export const useSeismicData = (): UseSeismicDataState & UseSeismicDataActions =>
             device_id: 'device-001',
             created_at: new Date().toISOString(),
           })),
-          error: null 
+          totalEvents: MOCK_HISTORY.length,
+          error: null
         }));
       } else {
         setError(error as ApiError);
@@ -115,7 +127,7 @@ export const useSeismicData = (): UseSeismicDataState & UseSeismicDataActions =>
       setState(prev => ({ 
         ...prev, 
         stats: {
-          total_alerts: prev.history.length,
+          total_alerts: prev.totalEvents,
           critical_alerts: prev.history.filter((a: any) => a.intensity >= 7).length,
           last_alert: prev.history[0]?.timestamp || null,
           storage_used: (storageData.sizeByte - storageData.freeByte) / GB,
