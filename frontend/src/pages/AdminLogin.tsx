@@ -55,7 +55,7 @@ export default function AdminLogin() {
           <div className="flex flex-col items-center text-center gap-2">
             <div
               className="flex items-center justify-center rounded-xl px-3 h-12"
-              style={{ background: 'linear-gradient(135deg, #2D61D3 0%, #1d4ed8 100%)' }}
+              style={{ background: 'linear-gradient(135deg, var(--brand) 0%, #3a5a70 100%)' }}
             >
               <img src={usherMarker} alt="USHER" className="h-6 w-auto brightness-0 invert" />
             </div>
@@ -114,7 +114,7 @@ export default function AdminLogin() {
             {error && (
               <p
                 className="text-xs font-medium rounded-lg px-3 py-2"
-                style={{ backgroundColor: 'rgba(239,68,68,0.12)', color: '#ef4444' }}
+                style={{ backgroundColor: 'rgba(193,96,92,0.12)', color: 'var(--status-error)' }}
               >
                 {error}
               </p>

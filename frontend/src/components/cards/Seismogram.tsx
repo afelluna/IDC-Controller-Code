@@ -13,12 +13,18 @@ export interface SeismogramHandle {
   pushBatch: (samples: SensorSample[]) => void;
 }
 
-const MAX_DATAPOINTS = 2250;
+// The sensor streams ~125 samples per ~250ms batch (~500Hz). Plotting every
+// raw sample packs so many points per pixel the line reads as a solid fill
+// rather than a legible waveform. Keep 1 in DECIMATION samples — still
+// smooth, but ~5x fewer points on screen — and size the rolling buffer for
+// a readable ~12s look-back window at that decimated rate.
+const DECIMATION = 5;
+const MAX_DATAPOINTS = 1200;
 
 const AXES = [
-  { label: 'X AXIS', stroke: '#ef4444', fill: 'rgba(239,68,68,0.25)' },
-  { label: 'Y AXIS', stroke: '#3b82f6', fill: 'rgba(59,130,246,0.20)' },
-  { label: 'Z AXIS', stroke: '#10b981', fill: 'rgba(16,185,129,0.20)' },
+  { label: 'X AXIS', stroke: '#C1605C', fill: 'rgba(193,96,92,0.22)' },
+  { label: 'Y AXIS', stroke: '#4C6E8C', fill: 'rgba(76,110,140,0.20)' },
+  { label: 'Z AXIS', stroke: '#5E8C6A', fill: 'rgba(94,140,106,0.20)' },
 ];
 
 export const Seismogram = forwardRef<SeismogramHandle, SeismogramProps>(
@@ -69,7 +75,13 @@ function Accelerograph({ livePoint, isLive }, ref) {
   }, []);
 
   useImperativeHandle(ref, () => ({
-    pushBatch(samples: SensorSample[]) {
+    pushBatch(rawSamples: SensorSample[]) {
+      if (!rawSamples.length) return;
+
+      // Thin the batch before it ever reaches the chart buffer — see DECIMATION note above.
+      const samples = rawSamples.length > DECIMATION
+        ? rawSamples.filter((_, i) => i % DECIMATION === 0)
+        : rawSamples;
       if (!samples.length) return;
 
       // Compute drain rate: samples / frames-per-batch (at 60fps / 16.67ms)
@@ -110,7 +122,7 @@ function Accelerograph({ livePoint, isLive }, ref) {
   const options: uPlot.Options = useMemo(() => ({
     width: 600,
     height: 300,
-    padding: [8, 8, 0, 8],
+    padding: [10, 6, 0, 2],
     legend: { show: false },
     cursor: {
       show: false,
@@ -128,11 +140,11 @@ function Accelerograph({ livePoint, isLive }, ref) {
     },
     axes: [
       {
-        size: 28,
-        font: '10px Arial',
-        stroke: '#94a3b8',
-        grid: { stroke: 'rgba(148,163,184,0.15)', width: 1 },
-        ticks: { show: true, stroke: 'rgba(148,163,184,0.25)', size: 3 },
+        size: 26,
+        font: '11px "JetBrains Mono", monospace',
+        stroke: '#93a3a6',
+        grid: { stroke: '#e7edec', width: 1, dash: [4, 4] },
+        ticks: { show: true, stroke: '#d7e1e0', size: 4 },
         space: 50,
         values: (self, ticks) => ticks.map(t => {
           const d = new Date(t * 1000);
@@ -140,12 +152,12 @@ function Accelerograph({ livePoint, isLive }, ref) {
         }),
       },
       {
-        size: 46,
-        font: '10px Arial',
-        stroke: '#94a3b8',
-        grid: { stroke: 'rgba(148,163,184,0.15)', width: 1 },
-        ticks: { show: true, stroke: 'rgba(148,163,184,0.25)', size: 3 },
-        space: 28,
+        size: 44,
+        font: '11px "JetBrains Mono", monospace',
+        stroke: '#93a3a6',
+        grid: { stroke: '#e7edec', width: 1, dash: [4, 4] },
+        ticks: { show: true, stroke: '#d7e1e0', size: 4 },
+        space: 26,
       },
     ],
     series: [
@@ -154,7 +166,7 @@ function Accelerograph({ livePoint, isLive }, ref) {
         label: a.label,
         stroke: a.stroke,
         fill: a.fill,
-        width: 1.5,
+        width: 1.75,
         points: { show: false },
       })),
     ],
@@ -181,23 +193,13 @@ function Accelerograph({ livePoint, isLive }, ref) {
   }, []);
 
   return (
-    <Card className="p-2 flex-1 min-h-0 flex flex-col">
-      {/* Header — title only */}
-      <div className="mb-1 shrink-0">
-        <h3
-          className="text-xs font-semibold uppercase tracking-widest"
-          style={{ color: 'var(--text-secondary)' }}
-        >
-          Accelerograph
-        </h3>
-      </div>
-
-      {/* Chart container — dark well */}
+    <Card className="p-3 flex-1 min-h-0 flex flex-col gap-2">
+      {/* Chart container — crisp white plotting well, gridlines do the work */}
       <div className="flex-1 w-full relative min-h-0">
         <div
           ref={containerRef}
-          className="absolute inset-0 uplot-container rounded-xl overflow-hidden"
-          style={{ backgroundColor: 'var(--bg-elevated)' }}
+          className="absolute inset-0 uplot-container rounded-lg overflow-hidden"
+          style={{ backgroundColor: '#ffffff', border: '1px solid var(--border-subtle)' }}
         >
           <UplotReact
             ref={chartRef}
@@ -210,7 +212,7 @@ function Accelerograph({ livePoint, isLive }, ref) {
         {/* Disconnected overlay */}
         {!isLive && (
           <div
-            className="absolute inset-0 flex flex-col items-center justify-center z-10 rounded-xl"
+            className="absolute inset-0 flex flex-col items-center justify-center z-10 rounded-lg"
             style={{ backgroundColor: 'rgba(255,255,255,0.6)', backdropFilter: 'blur(2px)' }}
           >
             <span className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
@@ -221,11 +223,11 @@ function Accelerograph({ livePoint, isLive }, ref) {
       </div>
 
       {/* Bottom legend — X AXIS / Y AXIS / Z AXIS */}
-      <div className="flex justify-center items-center gap-5 pt-1.5 shrink-0">
+      <div className="flex justify-center items-center gap-6 shrink-0">
         {AXES.map(a => (
           <div key={a.label} className="flex items-center gap-1.5">
             <span
-              className="inline-block rounded-sm shrink-0"
+              className="inline-block rounded-full shrink-0"
               style={{ width: 16, height: 3, backgroundColor: a.stroke }}
             />
             <span

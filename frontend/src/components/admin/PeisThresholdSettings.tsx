@@ -109,7 +109,7 @@ export function PeisThresholdSettings() {
                   style={{
                     backgroundColor: 'var(--bg-elevated)',
                     color: 'var(--text-primary)',
-                    border: `1px solid ${below ? '#ef4444' : 'var(--border-default)'}`,
+                    border: `1px solid ${below ? 'var(--status-error)' : 'var(--border-default)'}`,
                   }}
                 />
               </label>
@@ -118,7 +118,7 @@ export function PeisThresholdSettings() {
         </div>
 
         {allValid && !increasing && (
-          <p className="text-xs font-medium" style={{ color: '#ef4444' }}>
+          <p className="text-xs font-medium" style={{ color: 'var(--status-error)' }}>
             Each cutoff must be larger than the one before it.
           </p>
         )}
@@ -128,8 +128,8 @@ export function PeisThresholdSettings() {
             className="text-xs font-medium rounded-lg px-3 py-2 flex items-center gap-1.5"
             style={
               message.type === 'ok'
-                ? { backgroundColor: 'rgba(16,185,129,0.12)', color: '#10b981' }
-                : { backgroundColor: 'rgba(239,68,68,0.12)', color: '#ef4444' }
+                ? { backgroundColor: 'rgba(94,140,106,0.12)', color: 'var(--status-live)' }
+                : { backgroundColor: 'rgba(193,96,92,0.12)', color: 'var(--status-error)' }
             }
           >
             {message.type === 'ok' && <Check size={13} />}

@@ -1,11 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 
 // Components
-import { LogoCard } from '../components/cards/LogoCard';
 import { SummaryCard } from '../components/cards/SummaryCard';
 import { ThresholdCard } from '../components/cards/ThresholdCard';
 import { IntensityDisplay } from '../components/cards/IntensityDisplay';
-import { IntensityLegend } from '../components/cards/IntensityLegend';
 import { Seismogram, type SeismogramHandle } from '../components/cards/Seismogram';
 import { StatusCard } from '../components/cards/StatusCard';
 import { StorageCard } from '../components/cards/StorageCard';
@@ -15,6 +13,19 @@ import { useSeismicData } from '../hooks/useSeismicData';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useSeismicMetrics } from '../hooks/useSeismicMetrics';
 import { seismicApi } from '../api/seismicApi';
+
+function manilaTime(): string {
+  return new Date().toLocaleString('en-PH', {
+    timeZone: 'Asia/Manila',
+    month: 'short',
+    day: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
+}
 
 export default function MonitorPage() {
   // ─── Theme State ──────────────────────────────────────────────────────────
@@ -28,6 +39,13 @@ export default function MonitorPage() {
 
   // ─── Accelerograph ref for direct-push (bypasses React render cycle) ────
   const accelRef = useRef<SeismogramHandle>(null);
+
+  // ─── Manila clock — rendered above IntensityDisplay, outside the card ───
+  const [clock, setClock] = useState(manilaTime());
+  useEffect(() => {
+    const id = setInterval(() => setClock(manilaTime()), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   // ─── Seismic Data ─────────────────────────────────────────────────────────
   const {
@@ -56,6 +74,17 @@ export default function MonitorPage() {
       }
     }
   );
+
+  // Mock mode has no websocket event stream (the block above never fires), so
+  // its batches arrive via currentData.rawSamples instead — push those to the
+  // chart the same way the real event handler does. Guarded so this is a
+  // no-op in production (the real path above already pushes samples directly
+  // and doesn't rely on this effect).
+  useEffect(() => {
+    if (import.meta.env.VITE_USE_MOCKS === 'true' && currentData?.rawSamples?.length) {
+      accelRef.current?.pushBatch(currentData.rawSamples);
+    }
+  }, [currentData]);
 
   // Live derived metrics from rolling 60s buffer
   const { peakAccel, dominantFreq, maxDisp } = useSeismicMetrics(currentData);
@@ -171,42 +200,70 @@ export default function MonitorPage() {
 
   return (
     <div
-      className="h-screen overflow-hidden p-1.5 flex flex-col"
+      className="h-screen overflow-hidden p-2 flex flex-col gap-2"
       style={{ backgroundColor: 'var(--bg-base)' }}
     >
-      <div className="flex-1 grid grid-cols-12 gap-1.5 min-h-0 w-full">
+      {/* Slim page header — clock left, version right. Gives the kiosk a top
+          border margin instead of content running edge-to-edge. */}
+      <div className="shrink-0 flex justify-between items-center px-1">
+        <span
+          className="font-mono text-xs tracking-wider"
+          style={{ color: 'var(--text-secondary)' }}
+        >
+          {clock} PHT
+        </span>
+        <span
+          className="font-semibold text-xs tracking-wide"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          USHER ERI ver. 2026.07.01
+        </span>
+      </div>
 
-        {/* Left Column */}
-        <div className="col-span-2 flex flex-col gap-1.5 min-h-0 overflow-hidden">
-          <LogoCard />
-          <ThresholdCard />
-          <SummaryCard
-            peakAccel={peakAccel}
-            noOfEvents={noOfEvents}
-            dominantFreq={dominantFreq}
-            maxDisp={maxDisp}
-          />
+      {/* Two independent columns sharing only the outer top/bottom bounds —
+          neither column's internal splits are tied to the other's row heights. */}
+      <div className="flex-1 flex flex-row gap-2 min-h-0 w-full">
+
+        {/* Left column: IntensityDisplay + Seismogram split the full height
+            50/50, independent of whatever the right column is doing. */}
+        <div className="flex-[7] flex flex-col gap-2 min-h-0">
+          <div className="flex-1 min-h-0 flex flex-col">
+            <IntensityDisplay
+              intensity={displayIntensity}
+              warningLevel={warningLevel}
+              alertLevel={alertLevel}
+            />
+          </div>
+          <div className="flex-1 min-h-0 flex flex-col">
+            <Seismogram ref={accelRef} livePoint={currentData} isLive={connected} />
+          </div>
         </div>
 
-        {/* Center Column */}
-        <div className="col-span-6 flex flex-col gap-1.5 min-h-0">
-          <IntensityDisplay
-            intensity={displayIntensity}
-            acceleration={currentData?.acceleration}
-            rawX={currentData?.raw?.x}
-            rawY={currentData?.raw?.y}
-            rawZ={currentData?.raw?.z}
-            warningLevel={warningLevel}
-            alertLevel={alertLevel}
-          />
-          <IntensityLegend currentLevel={displayIntensity} />
-        </div>
+        {/* Right column: Threshold+Summary get 3/5 of the height, Status+Storage
+            get 2/5 — explicit ratio rather than natural/remainder sizing. */}
+        <div className="flex-[5] flex flex-col gap-2 min-h-0">
+          <div className="flex-[3] flex flex-col gap-2 min-h-0">
+            <div className="flex-[1] min-h-0">
+              <ThresholdCard />
+            </div>
+            <div className="flex-[2] min-h-0">
+              <SummaryCard
+                peakAccel={peakAccel}
+                noOfEvents={noOfEvents}
+                dominantFreq={dominantFreq}
+                maxDisp={maxDisp}
+              />
+            </div>
+          </div>
 
-        {/* Right Column */}
-        <div className="col-span-4 flex flex-col gap-1.5 min-h-0">
-          <Seismogram ref={accelRef} livePoint={currentData} isLive={connected} />
-          <StatusCard status={statusData} isLive={connected} />
-          <StorageCard usedGb={storageUsed} totalGb={storageTotal} />
+          <div className="flex-[2] flex flex-col gap-2 min-h-0">
+            <div className="flex-1 min-h-0">
+              <StatusCard status={statusData} isLive={connected} />
+            </div>
+            <div className="shrink-0">
+              <StorageCard usedGb={storageUsed} totalGb={storageTotal} />
+            </div>
+          </div>
         </div>
 
       </div>

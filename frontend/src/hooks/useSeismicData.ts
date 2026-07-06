@@ -177,50 +177,71 @@ export const useSeismicData = (): UseSeismicDataState & UseSeismicDataActions =>
     refreshAll();
     const interval = setInterval(refreshAll, 30000);
 
-    // Simulation for demo mode
+    // Simulation for demo mode — mirrors the real sensor's actual batching
+    // (~125 samples per ~250ms, see docs/data-flow-specification.md) instead
+    // of a single point per tick, so the accelerograph chart's decimation
+    // and rolling window get exercised the same way they will with a real
+    // device, and the demo waveform reads as an oscillation instead of
+    // scattered noise.
     let simInterval;
     if (useMocks) {
       let tick = 0;
+      let phase = 0;
+      let spikeCount = 0;
+      const SAMPLES_PER_BATCH = 125;
+      const SAMPLE_SPACING_MS = 2; // 125 * 2ms = 250ms/batch
+
       simInterval = setInterval(() => {
         tick++;
         // Base noise (PEIS 1, <0.0017)
-        // Add a bit more "jaggedness" with a secondary high-frequency noise component
-        const baseNoise = Math.random() * 0.0008;
-        const jitter = (Math.random() - 0.5) * 0.0004;
-        let accelTarget = baseNoise + jitter;
+        let accelTarget = 0.0008;
         let intensity = 1;
 
-        // Create occasional spikes every 10 seconds (at 100ms intervals, this is every 100 ticks)
-        if (tick % 100 === 0) {
-          // Randomly choose an intensity level from 2 to 7
-          intensity = Math.floor(Math.random() * 6) + 2; 
-          
-          if (intensity === 2) accelTarget = 0.0017 + Math.random() * (0.005 - 0.0017);
-          else if (intensity === 3) accelTarget = 0.005 + Math.random() * (0.014 - 0.005);
-          else if (intensity === 4) accelTarget = 0.014 + Math.random() * (0.039 - 0.014);
-          else if (intensity === 5) accelTarget = 0.039 + Math.random() * (0.092 - 0.039);
-          else if (intensity === 6) accelTarget = 0.092 + Math.random() * (0.18 - 0.092);
-          else if (intensity === 7) accelTarget = 0.18 + Math.random() * (0.34 - 0.18);
+        // Occasional spikes every ~10s (40 ticks * 250ms). Demo mode
+        // deliberately alternates between breaching Warrant 1 (elevated —
+        // the IntensityDisplay "breathing" glow) and Warrant 2 (critical —
+        // the pulse + expanding wave rings), instead of picking a fully
+        // random 2-7 level, so both signal animations are reliably visible
+        // without waiting on luck.
+        if (tick % 40 === 0) {
+          spikeCount++;
+          intensity = spikeCount % 2 === 1 ? 6 : 9; // 6 = elevated (Warrant 1), 9 = critical (Warrant 2)
+          if (intensity === 6) accelTarget = 0.092 + Math.random() * (0.18 - 0.092);
+          else if (intensity === 9) accelTarget = 0.65 + Math.random() * (1.24 - 0.65);
         }
 
-        // Randomly distribute acceleration magnitude across x, y, z axes with higher variance
-        const rx = (Math.random() - 0.5) * 2;
-        const ry = (Math.random() - 0.5) * 2;
-        const rz = (Math.random() - 0.5) * 2;
-        const mag = Math.sqrt(rx * rx + ry * ry + rz * rz) || 1;
-        
-        const x = (rx / mag) * accelTarget;
-        const y = (ry / mag) * accelTarget;
-        const z = (rz / mag) * accelTarget;
+        // Synthesize a batch of oscillating samples (per-axis sine + light
+        // noise) rather than pure random noise, so the waveform reads as
+        // motion instead of static. Track the peak sample for the
+        // IntensityDisplay X/Y/Z readout, matching how the real firmware
+        // reports the batch's peak values.
+        const freqHz = 2 + Math.random() * 4; // 2-6Hz dominant, plausible structural response
+        const now = Date.now();
+        const samples: Array<{ timestamp: number; x: number; y: number; z: number; intensity: number }> = [];
+        let peak = { x: 0, y: 0, z: 0, mag: 0 };
+
+        for (let i = 0; i < SAMPLES_PER_BATCH; i++) {
+          const t = (i * SAMPLE_SPACING_MS) / 1000;
+          const theta = phase + t * freqHz * 2 * Math.PI;
+          const noise = () => (Math.random() - 0.5) * accelTarget * 0.15;
+          const sx = accelTarget * Math.sin(theta) * 0.6 + noise();
+          const sy = accelTarget * Math.sin(theta + Math.PI / 3) * 0.6 + noise();
+          const sz = accelTarget * Math.sin(theta + Math.PI / 1.7) * 0.4 + noise();
+          const mag = Math.sqrt(sx * sx + sy * sy + sz * sz);
+          if (mag > peak.mag) peak = { x: sx, y: sy, z: sz, mag };
+          samples.push({ timestamp: now + i * SAMPLE_SPACING_MS, x: sx, y: sy, z: sz, intensity });
+        }
+        phase += SAMPLES_PER_BATCH * (SAMPLE_SPACING_MS / 1000) * freqHz * 2 * Math.PI;
 
         setCurrentData({
           intensity,
-          x,
-          y,
-          z,
-          nodename: 'Demo-Node-01'
+          x: peak.x,
+          y: peak.y,
+          z: peak.z,
+          nodename: 'Demo-Node-01',
+          samples,
         });
-      }, 100); // 100ms updates (10Hz) for jagged look
+      }, 250); // 250ms/batch — matches the real ~125-sample sensor batch cadence
     }
 
     return () => {
