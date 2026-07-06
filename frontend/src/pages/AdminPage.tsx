@@ -36,7 +36,7 @@ export default function AdminPage() {
         <div className="flex items-center gap-2.5">
           <div
             className="flex items-center justify-center rounded-lg px-2 h-9 shrink-0"
-            style={{ background: 'linear-gradient(135deg, #2D61D3 0%, #1d4ed8 100%)' }}
+            style={{ background: 'linear-gradient(135deg, var(--brand) 0%, #3a5a70 100%)' }}
           >
             <img src={usherMarker} alt="USHER" className="h-5 w-auto brightness-0 invert" />
           </div>
