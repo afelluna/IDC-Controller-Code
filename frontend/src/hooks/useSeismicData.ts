@@ -81,10 +81,15 @@ export const useSeismicData = (): UseSeismicDataState & UseSeismicDataActions =>
   const refreshHistory = useCallback(async () => {
     try {
       setLoading(true);
-      // Use /getAllHistoryMax (eventMax/uploadedeventMax FILES) — the same
-      // endpoint the admin EventList reads. /getHistory scans eventMax as
-      // per-event DIRECTORIES (legacy layout) and returns nothing on the RPi.
-      const response = await seismicApi.getAllHistoryMax();
+      // Use /getHistoryMax (capped to fileCount on the backend) for the 30s
+      // dashboard poll — NOT /getAllHistoryMax, which reads every file in the
+      // eventMax/uploadedEventMax dirs synchronously and unbounded. Those dirs
+      // are never pruned by ClearHistory, so as they grow over weeks each poll
+      // gets slower until it locks up the whole backend event loop.
+      // /getAllHistoryMax is still fine for EventList.tsx's on-demand admin load.
+      // /getHistory (non-Max) scans eventMax as per-event DIRECTORIES (legacy
+      // layout) and returns nothing on the RPi — don't use that one either.
+      const response = await seismicApi.getHistoryMax();
       const d = response.data as any;
       const history = d?.history || [];
       // Prefer the backend's true total; fall back to the (capped) page length
