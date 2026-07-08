@@ -41,10 +41,10 @@ export function StorageCard({ usedGb, totalGb }: StorageCardProps) {
       </div>
 
       <span
-        className="font-mono text-[10px] font-medium shrink-0 opacity-80"
+        className="font-mono text-[10px] font-medium uppercase tracking-wide shrink-0 opacity-80"
         style={{ color: 'var(--text-muted)' }}
       >
-        {usedGb.toFixed(1)} GB of {totalGb.toFixed(1)} GB Used
+        {usedGb.toFixed(1)} GB OF {totalGb.toFixed(1)} GB USED
       </span>
     </Card>
   );

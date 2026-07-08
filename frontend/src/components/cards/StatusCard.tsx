@@ -11,7 +11,6 @@ interface StatusRow {
 
 interface StatusCardProps {
   status: StatusRow[];
-  isLive: boolean;
 }
 
 const DOT_STYLE: Record<DotState, string> = {
@@ -31,29 +30,21 @@ const ROW_ICON: Record<string, LucideIcon> = {
   'Last update': Clock,
 };
 
-export function StatusCard({ status, isLive }: StatusCardProps) {
+export function StatusCard({ status }: StatusCardProps) {
   return (
     <Card className="p-3 h-full">
-      {/* Header — label left, live/offline badge right */}
-      <div className="flex items-center justify-between shrink-0 mb-1">
+      {/* Header — title only. Live/offline state lives in the Connection row;
+          repeating it up here was redundant. */}
+      <div className="flex items-center shrink-0 mb-1">
         <h3
           className="text-[10px] font-semibold uppercase tracking-widest"
           style={{ color: 'var(--text-secondary)' }}
         >
           Status
         </h3>
-        <div className="flex items-center gap-1.5">
-          <span className={`status-dot ${isLive ? 'live' : 'idle'}`} />
-          <span
-            className="text-[11px] font-bold"
-            style={{ color: isLive ? 'var(--status-live)' : 'var(--status-idle)' }}
-          >
-            {isLive ? 'Live' : 'Offline'}
-          </span>
-        </div>
       </div>
 
-      {/* Rows — icon + label left, dot + value right. justify-evenly spreads
+      {/* Rows — icon + label left, value + dot right. justify-evenly spreads
           the extra room this card now has (Threshold/Summary shrank to grids)
           between rows instead of leaving it as dead margin top and bottom. */}
       <div className="flex-1 flex flex-col justify-evenly">
@@ -66,16 +57,18 @@ export function StatusCard({ status, isLive }: StatusCardProps) {
             >
               <span className="flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
                 {Icon && <Icon size={13} strokeWidth={2} style={{ color: 'var(--text-muted)' }} />}
-                <span className="text-[11px]">{row.label}</span>
+                <span className="text-[11px] uppercase tracking-wide">{row.label}</span>
               </span>
+              {/* Value first, dot last — dots form one aligned column at the
+                  card's right edge regardless of each value's text width. */}
               <div className="flex items-center gap-1.5">
-                <span className={`status-dot ${DOT_STYLE[row.dot]}`} />
                 <span
-                  className="text-[11px] font-semibold font-mono"
+                  className="text-[11px] font-semibold font-mono uppercase"
                   style={{ color: 'var(--text-primary)' }}
                 >
                   {row.value}
                 </span>
+                <span className={`status-dot ${DOT_STYLE[row.dot]}`} />
               </div>
             </div>
           );
