@@ -19,15 +19,11 @@ export default defineConfig(({mode}) => {
         output: {
           // Split heavy third-party libs into their own cacheable chunks so the
           // main bundle stays small and vendor code isn't re-downloaded on
-          // app-code changes. Matches transitive deps too (e.g. recharts pulls
-          // in many d3-* packages) by inspecting the full module path.
+          // app-code changes.
           manualChunks(id) {
             if (!id.includes('node_modules')) return undefined;
             if (/[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler)[\\/]/.test(id))
               return 'vendor-react';
-            if (/[\\/]node_modules[\\/](recharts|d3-|victory-|internmap|decimal\.js)/.test(id))
-              return 'vendor-recharts';
-            if (/[\\/]node_modules[\\/]motion/.test(id)) return 'vendor-motion';
             if (/[\\/]node_modules[\\/]uplot/.test(id)) return 'vendor-uplot';
             if (/[\\/]node_modules[\\/]socket\.io-client|engine\.io-client|socket\.io-parser/.test(id))
               return 'vendor-socket';

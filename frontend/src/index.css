@@ -204,6 +204,15 @@
   100% { opacity: 0.0;  transform: scale(2.6); }
 }
 
+/* Intensity value fade/scale-in on change (replaces the motion/react dependency). */
+.peis-value-enter {
+  animation: peis-value-in 0.25s ease-out;
+}
+@keyframes peis-value-in {
+  0%   { opacity: 0; transform: scale(0.8); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
 /* Synced glow on the big level number for the critical tier. */
 .peis-number-critical {
   animation: peis-number-glow 0.6s ease-in-out infinite;
@@ -219,7 +228,8 @@
 @media (prefers-reduced-motion: reduce) {
   .peis-glow,
   .peis-wave,
-  .peis-number-critical {
+  .peis-number-critical,
+  .peis-value-enter {
     animation: none !important;
   }
   .peis-glow.elevated { opacity: 0.30; }

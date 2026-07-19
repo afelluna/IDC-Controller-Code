@@ -1,4 +1,3 @@
-import { motion } from 'motion/react';
 import { Card } from '../ui/Card';
 import { INTENSITY_SCALE, getIntensityMessage } from '../../constants';
 import usherLogo from '../../assets/usher-no-text.svg';
@@ -51,11 +50,9 @@ export function IntensityDisplay({
         </>
       )}
 
-      <motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
+      <div
         key={intensity}
-        className="relative z-10 flex-1 h-full w-full min-h-0 flex flex-col items-center justify-center gap-3 px-4 py-3"
+        className="peis-value-enter relative z-10 flex-1 h-full w-full min-h-0 flex flex-col items-center justify-center gap-3 px-4 py-3"
       >
         {/* Large level number — shield watermark centered exactly on the number
             (the wrapper's only child is the number span, so the shield's
@@ -114,7 +111,7 @@ export function IntensityDisplay({
             <span style={{ width: 20, height: 1, backgroundColor: 'currentColor' }} />
           </div>
         </div>
-      </motion.div>
+      </div>
     </Card>
   );
 }
