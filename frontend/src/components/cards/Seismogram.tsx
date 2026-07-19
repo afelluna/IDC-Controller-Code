@@ -7,6 +7,7 @@ import uPlot from 'uplot';
 interface SeismogramProps {
   livePoint: SeismicDataResponse | null;
   isLive: boolean;
+  theme: 'light' | 'dark';
 }
 
 export interface SeismogramHandle {
@@ -21,14 +22,53 @@ export interface SeismogramHandle {
 const DECIMATION = 5;
 const MAX_DATAPOINTS = 1200;
 
+// Each axis gets its own scale and its own horizontal band ("lane") of the
+// plotting area, independently auto-ranged to its own amplitude. Real sensor
+// data on X/Y/Z rarely lands on the exact same value, but at rest (or during
+// tiny ambient noise) three near-identical near-zero traces drawn on a shared
+// baseline visually merge into one line. Separating them into stacked lanes —
+// the standard multi-channel seismograph technique — guarantees all three
+// stay visible and distinguishable regardless of amplitude.
+const LANE_GAP = 0.03;
+const LANE_HEIGHT = (1 - LANE_GAP * 2) / 3;
 const AXES = [
-  { label: 'X AXIS', stroke: '#C1605C', fill: 'rgba(193,96,92,0.22)' },
-  { label: 'Y AXIS', stroke: '#4C6E8C', fill: 'rgba(76,110,140,0.20)' },
-  { label: 'Z AXIS', stroke: '#5E8C6A', fill: 'rgba(94,140,106,0.20)' },
+  { label: 'X AXIS', stroke: '#f87171', fill: 'rgba(248,113,113,0.20)', scale: 'sx', f0: 1 - LANE_HEIGHT, f1: 1 },
+  { label: 'Y AXIS', stroke: '#38bdf8', fill: 'rgba(56,189,248,0.18)', scale: 'sy', f0: LANE_HEIGHT + LANE_GAP, f1: LANE_HEIGHT * 2 + LANE_GAP },
+  { label: 'Z AXIS', stroke: '#34d399', fill: 'rgba(52,211,153,0.18)', scale: 'sz', f0: 0, f1: LANE_HEIGHT },
 ];
 
+// Maps a scale's own auto-detected data extent to a fixed [f0, f1] fraction
+// band of the shared pixel height, so each series occupies only its lane no
+// matter how uPlot's per-scale auto-ranging linearly maps [min, max] to the
+// full plot height. See derivation: position(v) = mid + (v/amp)*halfHeight
+// must equal the standard (v - min) / (max - min) uPlot uses internally.
+function laneRange(f0: number, f1: number) {
+  return (_u: uPlot, dataMin: number, dataMax: number): [number, number] => {
+    const maxAbs = Math.max(Math.abs(dataMin), Math.abs(dataMax));
+    const amp = Math.max(maxAbs * 1.2, 0.0005);
+    const mid = (f0 + f1) / 2;
+    const halfHeight = (f1 - f0) / 2;
+    const span = amp / halfHeight;
+    return [-mid * span, (1 - mid) * span];
+  };
+}
+
+// Bottom-fraction -> CSS `top` percentage (fractions run bottom=0/top=1, CSS runs top=0/bottom=1).
+const toCssTop = (f: number) => `${(1 - f) * 100}%`;
+const LANE_DIVIDERS = [AXES[2].f1 + LANE_GAP / 2, AXES[1].f1 + LANE_GAP / 2].map(toCssTop);
+const LANE_LABEL_TOPS = AXES.map(a => toCssTop((a.f0 + a.f1) / 2));
+
+// uPlot options are plain JS, not CSS — can't read custom properties, so the
+// two plotting-well palettes are mirrored here from index.css's :root /
+// [data-theme="dark"] tokens.
+const CHART_PALETTE = {
+  light: { well: '#ffffff', grid: '#e7edec', tick: '#d7e1e0', axisText: '#93a3a6', scrim: 'rgba(255,255,255,0.6)' },
+  dark:  { well: '#0a121c', grid: 'rgba(140,180,220,0.14)', tick: 'rgba(140,180,220,0.28)', axisText: '#7e93a8', scrim: 'rgba(10,16,24,0.72)' },
+};
+
 export const Seismogram = forwardRef<SeismogramHandle, SeismogramProps>(
-function Accelerograph({ livePoint, isLive }, ref) {
+function Accelerograph({ livePoint, isLive, theme }, ref) {
+  const palette = CHART_PALETTE[theme];
   const chartRef = useRef<UplotReactHandle>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -130,34 +170,25 @@ function Accelerograph({ livePoint, isLive }, ref) {
     select: { show: false },
     scales: {
       x: { time: true },
-      y: {
-        range: (u, dataMin, dataMax) => {
-          const maxAbs = Math.max(Math.abs(dataMin), Math.abs(dataMax));
-          const finalMax = Math.max(maxAbs * 1.2, 0.0005);
-          return [-finalMax, finalMax];
-        },
-      },
+      sx: { range: laneRange(AXES[0].f0, AXES[0].f1) },
+      sy: { range: laneRange(AXES[1].f0, AXES[1].f1) },
+      sz: { range: laneRange(AXES[2].f0, AXES[2].f1) },
     },
+    // Only the time axis is shown — a single shared numeric axis can't
+    // meaningfully label three independently-scaled lanes, and exact values
+    // are already covered by the live X/Y/Z/GND readout above the chart.
     axes: [
       {
-        size: 26,
-        font: '11px "JetBrains Mono", monospace',
-        stroke: '#93a3a6',
-        grid: { stroke: '#e7edec', width: 1, dash: [4, 4] },
-        ticks: { show: true, stroke: '#d7e1e0', size: 4 },
+        size: 20,
+        font: '10px "JetBrains Mono", monospace',
+        stroke: palette.axisText,
+        grid: { stroke: palette.grid, width: 1, dash: [4, 4] },
+        ticks: { show: true, stroke: palette.tick, size: 4 },
         space: 50,
         values: (self, ticks) => ticks.map(t => {
           const d = new Date(t * 1000);
           return `${d.getSeconds().toString().padStart(2, '0')}s`;
         }),
-      },
-      {
-        size: 44,
-        font: '11px "JetBrains Mono", monospace',
-        stroke: '#93a3a6',
-        grid: { stroke: '#e7edec', width: 1, dash: [4, 4] },
-        ticks: { show: true, stroke: '#d7e1e0', size: 4 },
-        space: 26,
       },
     ],
     series: [
@@ -168,9 +199,10 @@ function Accelerograph({ livePoint, isLive }, ref) {
         fill: a.fill,
         width: 1.75,
         points: { show: false },
+        scale: a.scale,
       })),
     ],
-  }), []);
+  }), [theme]);
 
   useEffect(() => () => {
     cancelAnimationFrame(rafRef.current);
@@ -192,14 +224,45 @@ function Accelerograph({ livePoint, isLive }, ref) {
     return () => ro.disconnect();
   }, []);
 
+  // Live per-axis readout — the resultant (ground) is derived from the same
+  // x/y/z the readout displays, so it always agrees with what's on screen
+  // rather than sourcing from the batch's separately-tracked peak.
+  const liveX = livePoint?.raw?.x ?? null;
+  const liveY = livePoint?.raw?.y ?? null;
+  const liveZ = livePoint?.raw?.z ?? null;
+  const liveGround = liveX !== null && liveY !== null && liveZ !== null
+    ? Math.sqrt(liveX * liveX + liveY * liveY + liveZ * liveZ)
+    : null;
+  const fmt = (v: number | null) => v !== null ? v.toFixed(5) : '—';
+
   return (
-    <Card className="p-3 flex-1 min-h-0 flex flex-col gap-2">
-      {/* Chart container — crisp white plotting well, gridlines do the work */}
+    <Card className="p-2 flex-1 min-h-0 flex flex-col gap-1.5">
+      {/* Live X/Y/Z/Ground readout — replaces the old static chart title */}
+      <div className="flex items-center justify-center gap-4 shrink-0 px-1">
+        {[
+          { label: 'X', value: liveX, color: AXES[0].stroke },
+          { label: 'Y', value: liveY, color: AXES[1].stroke },
+          { label: 'Z', value: liveZ, color: AXES[2].stroke },
+          { label: 'GND', value: liveGround, color: 'var(--brand)' },
+        ].map((a) => (
+          <span key={a.label} className="flex items-baseline gap-1 font-mono">
+            <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: a.color }}>
+              {a.label}
+            </span>
+            <span className="text-[10px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+              {fmt(a.value)}
+            </span>
+            <span className="text-[8px]" style={{ color: 'var(--text-muted)' }}>G</span>
+          </span>
+        ))}
+      </div>
+
+      {/* Chart container — dark plotting well, dashed gridlines do the work */}
       <div className="flex-1 w-full relative min-h-0">
         <div
           ref={containerRef}
-          className="absolute inset-0 uplot-container rounded-lg overflow-hidden"
-          style={{ backgroundColor: '#ffffff', border: '1px solid var(--border-subtle)' }}
+          className="absolute inset-0 uplot-container rounded-md overflow-hidden"
+          style={{ backgroundColor: palette.well, border: '1px solid var(--border-subtle)' }}
         >
           <UplotReact
             ref={chartRef}
@@ -207,13 +270,37 @@ function Accelerograph({ livePoint, isLive }, ref) {
             data={chartDataRef.current}
             className="w-full h-full"
           />
+
+          {/* Lane dividers + labels — confined to the plotting area (excludes
+              the ~20px time-axis strip at the bottom via inset). Purely a
+              visual aid: the actual separation comes from each series having
+              its own auto-scaled band (see laneRange above), not from these
+              lines. */}
+          <div className="absolute left-0 right-0 pointer-events-none" style={{ top: 10, bottom: 20 }}>
+            {LANE_DIVIDERS.map((top, i) => (
+              <div
+                key={i}
+                className="absolute left-0 right-0"
+                style={{ top, height: 1, backgroundColor: palette.grid }}
+              />
+            ))}
+            {AXES.map((a, i) => (
+              <span
+                key={a.label}
+                className="absolute font-mono text-[8px] font-bold uppercase"
+                style={{ top: LANE_LABEL_TOPS[i], left: 4, transform: 'translateY(-50%)', color: a.stroke, opacity: 0.75 }}
+              >
+                {a.label[0]}
+              </span>
+            ))}
+          </div>
         </div>
 
         {/* Disconnected overlay */}
         {!isLive && (
           <div
-            className="absolute inset-0 flex flex-col items-center justify-center z-10 rounded-lg"
-            style={{ backgroundColor: 'rgba(255,255,255,0.6)', backdropFilter: 'blur(2px)' }}
+            className="absolute inset-0 flex flex-col items-center justify-center z-10 rounded-md"
+            style={{ backgroundColor: palette.scrim, backdropFilter: 'blur(2px)' }}
           >
             <span className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
               No Signal

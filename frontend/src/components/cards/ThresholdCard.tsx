@@ -82,7 +82,7 @@ export function ThresholdCard() {
         {/* WARRANT 1 */}
         <Row
           color="var(--status-warn)"
-          bg="rgba(201,154,84,0.14)"
+          bg="rgba(251,191,36,0.14)"
           icon={<IconAlert />}
           label="Warrant 1"
           value={
@@ -95,7 +95,7 @@ export function ThresholdCard() {
         {/* WARRANT 2 */}
         <Row
           color="var(--status-error)"
-          bg="rgba(193,96,92,0.14)"
+          bg="rgba(248,113,113,0.14)"
           icon={<IconShield />}
           label="Warrant 2"
           value={

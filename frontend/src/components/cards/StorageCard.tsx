@@ -13,7 +13,7 @@ export function StorageCard({ usedGb, totalGb }: StorageCardProps) {
   const tierColor =
     fillRatio >= 0.8 ? 'var(--status-error)' :
     fillRatio >= 0.6 ? 'var(--status-warn)' :
-    'var(--color-green)';
+    'var(--status-live)';
 
   return (
     <Card className="p-2 gap-1">

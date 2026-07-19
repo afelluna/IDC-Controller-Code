@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, CalendarClock, Sun, Moon } from 'lucide-react';
 
 // Components
 import { SummaryCard } from '../components/cards/SummaryCard';
@@ -31,13 +31,18 @@ function manilaTime(): string {
 
 export default function MonitorPage() {
   // ─── Theme State ──────────────────────────────────────────────────────────
-  const [theme] = useState<'light' | 'dark'>(() => {
-    return (localStorage.getItem('usher-theme') as 'light' | 'dark') || 'light';
+  // Kiosk display defaults to dark (SCADA/control-room look) but the operator
+  // can flip it via the header toggle; the choice persists across reloads.
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    return (localStorage.getItem('usher-theme') as 'light' | 'dark') || 'dark';
   });
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
+    localStorage.setItem('usher-theme', theme);
   }, [theme]);
+
+  const toggleTheme = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
 
   // ─── Accelerograph ref for direct-push (bypasses React render cycle) ────
   const accelRef = useRef<SeismogramHandle>(null);
@@ -251,78 +256,101 @@ export default function MonitorPage() {
 
   return (
     <div
-      className="relative h-screen overflow-hidden p-2 flex flex-col gap-2"
+      className="relative h-screen overflow-hidden p-1.5 flex flex-col gap-1.5"
       style={{ backgroundColor: 'var(--bg-base)' }}
     >
       {/* Slim page header — clock left, version right. Gives the kiosk a top
           border margin instead of content running edge-to-edge. */}
-      <div className="shrink-0 flex justify-between items-center px-1">
-        <span
-          className="font-mono text-xs uppercase tracking-wider"
-          style={{ color: 'var(--text-secondary)' }}
-        >
-          {clock} PHT
+      <div className="shrink-0 flex justify-between items-center px-1" style={{ height: 20 }}>
+        <span className="flex items-center gap-2">
+          {/* Theme toggle lives on the left, next to the clock — the fault
+              toast floats top-right and would otherwise sit on top of it
+              and block clicks whenever a fault is active. */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            className="flex items-center justify-center rounded-md shrink-0 transition-colors"
+            style={{
+              width: 20,
+              height: 20,
+              color: 'var(--brand)',
+              backgroundColor: 'var(--brand-dim)',
+              border: '1px solid var(--border-default)',
+            }}
+          >
+            {theme === 'dark' ? <Sun size={12} strokeWidth={2.25} /> : <Moon size={12} strokeWidth={2.25} />}
+          </button>
+          <span className="flex items-center gap-1.5" style={{ color: 'var(--brand)' }}>
+            <CalendarClock size={13} strokeWidth={2.25} className="shrink-0" />
+            <span className="font-mono text-[11px] uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
+              {clock} PHT
+            </span>
+          </span>
         </span>
         <span
-          className="font-semibold text-xs uppercase tracking-wide"
-          style={{ color: 'var(--text-muted)' }}
+          className="font-semibold text-[11px] uppercase tracking-wide"
+          style={{ color: 'var(--brand)' }}
         >
           USHER ERI VER. 2026.07.01
         </span>
       </div>
 
-      {/* Fault banner — floats over the dashboard (absolute, below the header)
+      {/* Fault toast — floats over the dashboard (absolute, below the header)
           so appearing/disappearing never reflows the cards underneath. Only
           rendered while faults are active, so the kiosk stays clean in normal
-          operation but failures are unmissable. */}
+          operation but failures are unmissable. Capped narrow so it never
+          covers the PEIS hero card or the right-side metric cards. */}
       {faults.length > 0 && (
         <div
-          className="absolute top-9 left-1/2 -translate-x-1/2 z-50 max-w-[92%] flex items-center gap-2 px-4 py-2 rounded-lg shadow-xl"
+          className="absolute top-0.5 right-1 z-50 w-[380px] max-w-[55%] flex items-center gap-1.5 px-2.5 py-1 rounded-md shadow-xl"
           style={{
             backgroundColor: hasCritical ? 'var(--status-error)' : 'var(--status-warn)',
-            color: '#ffffff',
+            color: '#0a1018',
+            height: 19,
           }}
         >
-          <AlertTriangle size={14} strokeWidth={2.5} className="shrink-0" />
-          <span className="text-xs font-bold uppercase tracking-wide">
+          <AlertTriangle size={11} strokeWidth={2.5} className="shrink-0" />
+          <span className="text-[9px] font-bold uppercase tracking-wide truncate">
             {faults.map((f) => f.message).join('  ·  ')}
           </span>
         </div>
       )}
 
-      {/* Two independent columns sharing only the outer top/bottom bounds —
-          neither column's internal splits are tied to the other's row heights. */}
-      <div className="flex-1 flex flex-row gap-2 min-h-0 w-full">
+      {/* Main content — CSS Grid: left (PEIS hero + chart) / center (vertical
+          PEIS scale pole) / right (thresholds, summary, status, storage).
+          Column widths approximate the 60/5/35 proportions of the reference
+          layout without hardcoding px so it still holds up above 800x480. */}
+      <div
+        className="flex-1 min-h-0 w-full grid gap-1.5"
+        style={{ gridTemplateColumns: 'minmax(0, 1.7fr) 44px minmax(0, 1fr)' }}
+      >
 
         {/* Left column: IntensityDisplay + Seismogram split the full height
             50/50, independent of whatever the right column is doing. */}
-        <div className="flex-[7] flex flex-col gap-2 min-h-0">
-          <div className="flex-1 min-h-0 flex flex-col">
+        <div className="flex flex-col gap-1.5 min-h-0">
+          <div className="flex-[2] min-h-0 flex flex-col">
             <IntensityDisplay
               intensity={displayIntensity}
               warningLevel={warningLevel}
               alertLevel={alertLevel}
             />
           </div>
-          <div className="flex-1 min-h-0 flex flex-col">
-            <Seismogram ref={accelRef} livePoint={currentData} isLive={connected} />
+          <div className="flex-[3] min-h-0 flex flex-col">
+            <Seismogram ref={accelRef} livePoint={currentData} isLive={connected} theme={theme} />
           </div>
         </div>
 
-        {/* Right side keeps its 5/12 share, but a slim vertical PEIS legend
-            pole is carved out of it — sitting between the two columns without
-            taking any width from the left column. It spans the full content
-            height (top of the columns to the bottom, below the page header). */}
-        <div className="flex-[5] flex flex-row gap-2 min-h-0">
+        {/* Center: slim vertical PEIS legend pole, own grid track so it never
+            borrows width from either side column. */}
+        <div className="min-h-0">
+          <IntensityLegend currentLevel={displayIntensity} />
+        </div>
 
-          <div className="w-11 shrink-0 min-h-0">
-            <IntensityLegend currentLevel={displayIntensity} />
-          </div>
-
-          {/* Right column: Threshold+Summary get 3/5 of the height, Status+Storage
-              get 2/5 — explicit ratio rather than natural/remainder sizing. */}
-          <div className="flex-1 flex flex-col gap-2 min-h-0">
-          <div className="flex-[3] flex flex-col gap-2 min-h-0">
+        {/* Right column: Threshold+Summary get 3/5 of the height, Status+Storage
+            get 2/5 — explicit ratio rather than natural/remainder sizing. */}
+        <div className="flex flex-col gap-1.5 min-h-0">
+          <div className="flex-[3] flex flex-col gap-1.5 min-h-0">
             <div className="flex-[1] min-h-0">
               <ThresholdCard />
             </div>
@@ -336,14 +364,13 @@ export default function MonitorPage() {
             </div>
           </div>
 
-          <div className="flex-[2] flex flex-col gap-2 min-h-0">
+          <div className="flex-[2] flex flex-col gap-1.5 min-h-0">
             <div className="flex-1 min-h-0">
               <StatusCard status={statusData} />
             </div>
             <div className="shrink-0">
               <StorageCard usedGb={storageUsed} totalGb={storageTotal} />
             </div>
-          </div>
           </div>
         </div>
 

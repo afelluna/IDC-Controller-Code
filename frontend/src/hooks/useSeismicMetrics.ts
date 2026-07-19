@@ -14,6 +14,7 @@ interface SeismicMetrics {
   peakAccel: number;        // m/s² — exact
   dominantFreq: number | null;   // Hz — approximate (~)
   maxDisp: number | null;        // m  — approximate (~)
+  duration: number | null;       // sec — span of the rolling buffer's timestamps
 }
 
 export function useSeismicMetrics(currentData: SeismicDataResponse | null): SeismicMetrics {
@@ -29,6 +30,7 @@ export function useSeismicMetrics(currentData: SeismicDataResponse | null): Seis
     peakAccel: 0,
     dominantFreq: null,
     maxDisp: null,
+    duration: null,
   });
 
   useEffect(() => {
@@ -69,6 +71,7 @@ export function useSeismicMetrics(currentData: SeismicDataResponse | null): Seis
       peakAccel:     peakAcceleration(xs, ys, zs),
       dominantFreq:  dominantFrequency(magnitudes, sampleRate),
       maxDisp:       maxDisplacement(magnitudes, sampleRate),
+      duration:      times.length >= 2 ? times[times.length - 1] - times[0] : null,
     });
   }, [currentData]);
 
