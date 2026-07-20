@@ -79,6 +79,11 @@ export function resetPeisBoundaries(): void {
  * Map a peak acceleration magnitude (m/s²) to a PEIS level (1–10) using the
  * given boundaries. This is the single implementation — both the live monitor
  * and any preview should call it so the scale never drifts.
+ *
+ * NOTE: the live monitor no longer calls this to score real-time events — the
+ * sensor firmware sends the true PEIS level directly (payload index 5), which
+ * is the single source of truth (see useWebSocket.ts). This function remains
+ * for the /admin calibration preview only.
  */
 export function peisFromAccel(
   accel: number,
@@ -90,4 +95,14 @@ export function peisFromAccel(
     else break;
   }
   return level;
+}
+
+/** PEIS level (1–10) → PHIVOLCS Roman numeral, for display only. */
+export const PEIS_ROMAN_NUMERALS: Record<number, string> = {
+  1: 'I', 2: 'II', 3: 'III', 4: 'IV', 5: 'V',
+  6: 'VI', 7: 'VII', 8: 'VIII', 9: 'IX', 10: 'X',
+};
+
+export function peisRomanNumeral(level: number): string {
+  return PEIS_ROMAN_NUMERALS[level] ?? String(level);
 }

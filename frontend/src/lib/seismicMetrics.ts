@@ -112,23 +112,30 @@ export function dominantFrequency(
  * Approximate peak displacement (m) via high-pass filtered double-integration.
  * Approximate due to MEMS noise and integration drift — labelled "~" in the UI.
  * Uses a simple 1st-order high-pass IIR to remove DC offset before integrating.
+ *
+ * `magnitudes` arrive in g (raw sensor unit); double-integration needs m/s², so
+ * the g→m/s² conversion is applied here and only here — isolated from the PEIS
+ * pipeline, which now reads its intensity straight off the sensor (index 5).
  */
+const G_TO_MS2 = 9.80665;
+
 export function maxDisplacement(
   magnitudes: number[],
   sampleRate: number | null,
 ): number | null {
   if (sampleRate === null || sampleRate < 1 || magnitudes.length < 4) return null;
   const dt = 1 / sampleRate;
+  const accelMs2 = magnitudes.map(m => m * G_TO_MS2);
 
   // High-pass IIR filter (fc ≈ 0.1 Hz) to strip DC drift
   const rc = 1 / (2 * Math.PI * 0.1);
   const alpha = rc / (rc + dt);
-  const filtered = new Array<number>(magnitudes.length);
-  let prevRaw = magnitudes[0];
+  const filtered = new Array<number>(accelMs2.length);
+  let prevRaw = accelMs2[0];
   let prevFiltered = 0;
-  for (let i = 0; i < magnitudes.length; i++) {
-    filtered[i] = alpha * (prevFiltered + magnitudes[i] - prevRaw);
-    prevRaw = magnitudes[i];
+  for (let i = 0; i < accelMs2.length; i++) {
+    filtered[i] = alpha * (prevFiltered + accelMs2[i] - prevRaw);
+    prevRaw = accelMs2[i];
     prevFiltered = filtered[i];
   }
 

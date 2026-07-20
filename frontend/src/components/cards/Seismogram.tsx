@@ -17,10 +17,15 @@ export interface SeismogramHandle {
 // The sensor streams ~125 samples per ~250ms batch (~500Hz). Plotting every
 // raw sample packs so many points per pixel the line reads as a solid fill
 // rather than a legible waveform. Keep 1 in DECIMATION samples — still
-// smooth, but ~5x fewer points on screen — and size the rolling buffer for
-// a readable ~12s look-back window at that decimated rate.
+// smooth, but ~5x fewer points on screen (500Hz / 5 = 100Hz effective) —
+// and size the rolling buffer for an exactly-10s look-back window at that
+// rate (100Hz * 10s = 1000 points), so the trace lines up with the
+// 10s-interval time axis instead of scrolling a window that doesn't match
+// the tick spacing. Dropping decimation further to shrink the window
+// instead of the sample count throws away the oscillation detail that
+// makes the trace read as a real waveform rather than a flat line.
 const DECIMATION = 5;
-const MAX_DATAPOINTS = 1200;
+const MAX_DATAPOINTS = 1000;
 
 // Each axis gets its own scale and its own horizontal band ("lane") of the
 // plotting area, independently auto-ranged to its own amplitude. Real sensor
@@ -31,10 +36,13 @@ const MAX_DATAPOINTS = 1200;
 // stay visible and distinguishable regardless of amplitude.
 const LANE_GAP = 0.03;
 const LANE_HEIGHT = (1 - LANE_GAP * 2) / 3;
+// No fill under the traces — a filled band reads as a solid, congested
+// blob once real oscillation is present; a bare stroke reads as an actual
+// oscillator/oscilloscope waveform.
 const AXES = [
-  { label: 'X AXIS', stroke: '#f87171', fill: 'rgba(248,113,113,0.20)', scale: 'sx', f0: 1 - LANE_HEIGHT, f1: 1 },
-  { label: 'Y AXIS', stroke: '#38bdf8', fill: 'rgba(56,189,248,0.18)', scale: 'sy', f0: LANE_HEIGHT + LANE_GAP, f1: LANE_HEIGHT * 2 + LANE_GAP },
-  { label: 'Z AXIS', stroke: '#34d399', fill: 'rgba(52,211,153,0.18)', scale: 'sz', f0: 0, f1: LANE_HEIGHT },
+  { label: 'X AXIS', stroke: '#f87171', scale: 'sx', f0: 1 - LANE_HEIGHT, f1: 1 },
+  { label: 'Y AXIS', stroke: '#38bdf8', scale: 'sy', f0: LANE_HEIGHT + LANE_GAP, f1: LANE_HEIGHT * 2 + LANE_GAP },
+  { label: 'Z AXIS', stroke: '#34d399', scale: 'sz', f0: 0, f1: LANE_HEIGHT },
 ];
 
 // Maps a scale's own auto-detected data extent to a fixed [f0, f1] fraction
@@ -179,12 +187,16 @@ function Accelerograph({ livePoint, isLive, theme }, ref) {
     // are already covered by the live X/Y/Z/GND readout above the chart.
     axes: [
       {
-        size: 20,
-        font: '10px "JetBrains Mono", monospace',
+        size: 26,
+        font: '13px "JetBrains Mono", monospace',
         stroke: palette.axisText,
         grid: { stroke: palette.grid, width: 1, dash: [4, 4] },
         ticks: { show: true, stroke: palette.tick, size: 4 },
-        space: 50,
+        // Only whole 10s+ increments — matches the buffer's 10s window so
+        // exactly one gridline lands mid-window, and keeps the axis to a
+        // handful of labels instead of a tick every second or two.
+        incrs: [10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600],
+        space: 90,
         values: (self, ticks) => ticks.map(t => {
           const d = new Date(t * 1000);
           return `${d.getSeconds().toString().padStart(2, '0')}s`;
@@ -196,8 +208,7 @@ function Accelerograph({ livePoint, isLive, theme }, ref) {
       ...AXES.map(a => ({
         label: a.label,
         stroke: a.stroke,
-        fill: a.fill,
-        width: 1.75,
+        width: 2,
         points: { show: false },
         scale: a.scale,
       })),
@@ -246,13 +257,13 @@ function Accelerograph({ livePoint, isLive, theme }, ref) {
           { label: 'GND', value: liveGround, color: 'var(--brand)' },
         ].map((a) => (
           <span key={a.label} className="flex items-baseline gap-1 font-mono">
-            <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: a.color }}>
+            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: a.color }}>
               {a.label}
             </span>
-            <span className="text-[10px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+            <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
               {fmt(a.value)}
             </span>
-            <span className="text-[8px]" style={{ color: 'var(--text-muted)' }}>G</span>
+            <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>G</span>
           </span>
         ))}
       </div>
@@ -287,7 +298,7 @@ function Accelerograph({ livePoint, isLive, theme }, ref) {
             {AXES.map((a, i) => (
               <span
                 key={a.label}
-                className="absolute font-mono text-[8px] font-bold uppercase"
+                className="absolute font-mono text-[11px] font-bold uppercase"
                 style={{ top: LANE_LABEL_TOPS[i], left: 4, transform: 'translateY(-50%)', color: a.stroke, opacity: 0.75 }}
               >
                 {a.label[0]}
@@ -302,7 +313,7 @@ function Accelerograph({ livePoint, isLive, theme }, ref) {
             className="absolute inset-0 flex flex-col items-center justify-center z-10 rounded-md"
             style={{ backgroundColor: palette.scrim, backdropFilter: 'blur(2px)' }}
           >
-            <span className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+            <span className="text-sm font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
               No Signal
             </span>
           </div>
@@ -318,7 +329,7 @@ function Accelerograph({ livePoint, isLive, theme }, ref) {
               style={{ width: 16, height: 3, backgroundColor: a.stroke }}
             />
             <span
-              className="text-[10px] font-semibold uppercase tracking-wider"
+              className="text-xs font-semibold uppercase tracking-wider"
               style={{ color: a.stroke }}
             >
               {a.label}

@@ -11,7 +11,7 @@ const WINDOW_MS = 60_000;  // 60s rolling buffer
 const THROTTLE_MS = 500;   // recompute at most every 500ms
 
 interface SeismicMetrics {
-  peakAccel: number;        // m/s² — exact
+  peakAccel: number;        // g — exact (raw sensor unit; SummaryCard labels it "Peak Acceleration (G)")
   dominantFreq: number | null;   // Hz — approximate (~)
   maxDisp: number | null;        // m  — approximate (~)
   duration: number | null;       // sec — span of the rolling buffer's timestamps
