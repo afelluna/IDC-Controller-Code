@@ -55,56 +55,43 @@ export function IntensityDisplay({
 
       <div
         key={intensity}
-        className="peis-value-enter relative z-10 flex-1 w-full min-h-0 flex items-center gap-3 px-4"
+        className="peis-value-enter relative z-10 flex-1 w-full min-h-0 flex items-center justify-center gap-4 px-2"
       >
-        {/* Shield mark — fixed left */}
+        {/* Shield mark + number — logo watermarked directly behind the digit, centered on it */}
         <span
           className="relative flex items-center justify-center shrink-0"
-          style={{ width: 'clamp(40px, 62cqh, 100px)', height: 'clamp(40px, 62cqh, 100px)' }}
+          style={{ width: 'clamp(90px, 78cqh, 220px)', height: 'clamp(90px, 78cqh, 220px)' }}
         >
           <img
             src={usherLogo}
             alt=""
             aria-hidden="true"
-            className="relative w-full h-full object-contain drop-shadow-md"
+            className="absolute inset-0 w-full h-full object-contain"
+            style={{ opacity: 0.22, mixBlendMode: 'multiply', transform: 'scale(1.2)' }}
           />
+
+          <span
+            className="relative font-bold leading-none transition-colors duration-500"
+            style={{
+              color: currentIntensityData.text,
+              fontSize: 'clamp(56px, 66cqh, 180px)',
+              textShadow: intensity <= 2
+                ? '0 2px 10px rgba(0,0,0,0.10)'
+                : '0 2px 18px rgba(0,0,0,0.28)',
+            }}
+          >
+            {currentIntensityData.label || intensity}
+          </span>
         </span>
 
-        {/* Big level number */}
-        <span
-          className="relative shrink-0 font-bold leading-none transition-colors duration-500"
-          style={{
-            color: currentIntensityData.text,
-            fontSize: 'clamp(36px, 68cqh, 130px)',
-            textShadow: intensity <= 2
-              ? '0 2px 10px rgba(0,0,0,0.10)'
-              : '0 2px 18px rgba(0,0,0,0.28)',
-          }}
-        >
-          {currentIntensityData.label || intensity}
-        </span>
-
-        {/* Title + caption — right of the number, stacked, left-aligned */}
-        <div className="min-w-0 flex-1 flex flex-col gap-1 justify-center">
+        {/* Title — beside the number, centered together as one group in the card */}
+        <div className="min-w-0 shrink flex flex-col justify-center text-center">
           <h2
             className="font-bold uppercase tracking-tight leading-tight transition-colors duration-500"
-            style={{ fontSize: 'clamp(13px, 11cqh, 26px)', color: currentIntensityData.text }}
+            style={{ fontSize: 'clamp(24px, 20cqh, 56px)', color: currentIntensityData.text }}
           >
             {msg.title}
           </h2>
-          <div
-            className="flex items-center gap-2 opacity-70 transition-colors duration-500"
-            style={{ color: currentIntensityData.text }}
-            aria-hidden="true"
-          >
-            <span style={{ width: 16, height: 1, backgroundColor: 'currentColor' }} />
-            <span
-              className="font-semibold uppercase tracking-[0.18em]"
-              style={{ fontSize: 'clamp(7px, 1.6cqh, 10px)' }}
-            >
-              Phil. Earthquake Intensity Scale
-            </span>
-          </div>
         </div>
       </div>
     </Card>
