@@ -11,9 +11,10 @@ const WINDOW_MS = 60_000;  // 60s rolling buffer
 const THROTTLE_MS = 500;   // recompute at most every 500ms
 
 interface SeismicMetrics {
-  peakAccel: number;        // m/s² — exact
+  peakAccel: number;        // g — exact (raw sensor unit; SummaryCard labels it "Peak Acceleration (G)")
   dominantFreq: number | null;   // Hz — approximate (~)
   maxDisp: number | null;        // m  — approximate (~)
+  duration: number | null;       // sec — span of the rolling buffer's timestamps
 }
 
 export function useSeismicMetrics(currentData: SeismicDataResponse | null): SeismicMetrics {
@@ -29,6 +30,7 @@ export function useSeismicMetrics(currentData: SeismicDataResponse | null): Seis
     peakAccel: 0,
     dominantFreq: null,
     maxDisp: null,
+    duration: null,
   });
 
   useEffect(() => {
@@ -69,6 +71,7 @@ export function useSeismicMetrics(currentData: SeismicDataResponse | null): Seis
       peakAccel:     peakAcceleration(xs, ys, zs),
       dominantFreq:  dominantFrequency(magnitudes, sampleRate),
       maxDisp:       maxDisplacement(magnitudes, sampleRate),
+      duration:      times.length >= 2 ? times[times.length - 1] - times[0] : null,
     });
   }, [currentData]);
 

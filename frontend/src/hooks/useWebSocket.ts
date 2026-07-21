@@ -3,7 +3,6 @@ import { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 import seismicApi from '../api/seismicApi';
 import { getApiBase } from '../api/runtimeConfig';
-import { peisFromAccel, loadPeisBoundaries } from '../constants/peisConfig';
 
 // Extract just the hostname/IP from a URL string (e.g. "http://192.168.10.12:3000" → "192.168.10.12")
 function extractHost(url: string): string {
@@ -36,9 +35,6 @@ export const useWebSocket = (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const socketRef = useRef<any>(null);
   const onEventRef = useRef(onSeismicEvent);
-  // Admin-configurable PEIS cutoffs, read once from localStorage on mount.
-  // The monitor picks up /admin edits on its next reload (kiosk-acceptable).
-  const boundariesRef = useRef<number[]>(loadPeisBoundaries());
 
   // Keep ref updated to avoid stale closures in listeners
   useEffect(() => {
@@ -117,18 +113,15 @@ export const useWebSocket = (
               intensity: s[5],
             }));
 
-            // Sensor always hardcodes intensity=2. Calculate PEIS from peak
-            // acceleration magnitude across all 125 samples in the batch, using
-            // the admin-configured boundaries (peisConfig.ts).
-            const peakAccel = Math.max(...samples.map(s =>
-              Math.sqrt(s.x * s.x + s.y * s.y + s.z * s.z)
-            ));
-            const intensity = peisFromAccel(peakAccel, boundariesRef.current);
-
+            // Sensor firmware is the single source of truth for PEIS — index 5
+            // of each sample is its computed intensity. No client-side
+            // recalculation from x/y/z; just take the latest sample's value.
             const latest = samples[samples.length - 1];
+            const intensity = latest.intensity;
+
             const seismicEvent: SeismicEvent = {
               type: 'seismic.update',
-              data: { ...latest, intensity, peakAccel, samples },
+              data: { ...latest, intensity, samples },
               timestamp: new Date().toISOString(),
             };
             if (isMounted) setState(prev => ({ ...prev, lastEvent: seismicEvent }));

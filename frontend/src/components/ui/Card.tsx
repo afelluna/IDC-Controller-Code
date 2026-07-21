@@ -21,7 +21,7 @@ export function Card({ children, className, style }: CardProps) {
       )}
       style={{
         backgroundColor: 'var(--surface-card)',
-        borderRadius: 'var(--radius-xl)',
+        borderRadius: 'var(--radius-md)',
         boxShadow: 'var(--shadow-card)',
         border: '1px solid var(--border-subtle)',
         ...style,
