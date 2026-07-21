@@ -32,12 +32,12 @@ const ROW_ICON: Record<string, LucideIcon> = {
 
 export function StatusCard({ status }: StatusCardProps) {
   return (
-    <Card className="p-3 h-full">
+    <Card className="p-1.5 h-full">
       {/* Header — title only. Live/offline state lives in the Connection row;
           repeating it up here was redundant. */}
-      <div className="flex items-center shrink-0 mb-1">
+      <div className="flex items-center shrink-0">
         <h3
-          className="text-[10px] font-semibold uppercase tracking-widest"
+          className="text-[10px] font-bold uppercase"
           style={{ color: 'var(--text-secondary)' }}
         >
           Status
@@ -55,15 +55,15 @@ export function StatusCard({ status }: StatusCardProps) {
               key={i}
               className="flex justify-between items-center"
             >
-              <span className="flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
-                {Icon && <Icon size={13} strokeWidth={2} style={{ color: 'var(--text-muted)' }} />}
-                <span className="text-[11px] uppercase tracking-wide">{row.label}</span>
+              <span className="flex items-center gap-1.5" style={{ color: 'var(--text-secondary)' }}>
+                {Icon && <Icon size={11} strokeWidth={2.2} style={{ color: 'var(--text-muted)' }} />}
+                <span className="text-[10px] font-medium">{row.label}</span>
               </span>
               {/* Value first, dot last — dots form one aligned column at the
                   card's right edge regardless of each value's text width. */}
               <div className="flex items-center gap-1.5">
                 <span
-                  className="text-[11px] font-semibold font-mono uppercase"
+                  className="text-[10px] font-bold font-mono uppercase"
                   style={{ color: 'var(--text-primary)' }}
                 >
                   {row.value}

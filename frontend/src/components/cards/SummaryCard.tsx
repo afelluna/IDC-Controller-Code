@@ -55,10 +55,10 @@ export function SummaryCard({ peakAccel, noOfEvents, dominantFreq, maxDisp }: Su
       </p>
 
       <div className="flex-1 grid grid-cols-2 gap-1.5 min-h-0">
-        <MetricTile icon={<IconActivity />}    label="Peak Acceleration (G)"    value={fmtAccel}  accentColor="#38bdf8" />
-        <MetricTile icon={<IconWaves />}       label="Dominant Frequency (Hz)"  value={fmtFreq}   approximate accentColor="#34d399" />
-        <MetricTile icon={<IconCalendar />}    label="No. of Events"            value={fmtEvents} accentColor="#a78bfa" />
-        <MetricTile icon={<IconArrowUpDown />} label="Max Displacement (mm)"    value={fmtDisp}   approximate accentColor="#fbbf24" />
+        <MetricTile icon={<IconActivity />}    label="Peak Accel (G)"           value={fmtAccel}  accentColor="#38bdf8" />
+        <MetricTile icon={<IconWaves />}       label="Dom Freq (Hz)"            value={fmtFreq}   approximate accentColor="#34d399" />
+        <MetricTile icon={<IconCalendar />}    label="Events"                   value={fmtEvents} accentColor="#a78bfa" />
+        <MetricTile icon={<IconArrowUpDown />} label="Max Disp (mm)"            value={fmtDisp}   approximate accentColor="#fbbf24" />
       </div>
     </div>
   );

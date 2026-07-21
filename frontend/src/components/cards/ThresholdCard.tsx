@@ -29,22 +29,19 @@ interface RowProps {
 
 function Row({ color, bg, icon, label, value }: RowProps) {
   return (
-    <div
-      className="summary-card flex items-center gap-3 px-3"
-      style={{ borderLeft: `3px solid ${color}` }}
-    >
-      <div
-        className="flex items-center justify-center rounded-lg shrink-0"
-        style={{ width: 34, height: 34, backgroundColor: bg, color }}
-      >
-        {icon}
-      </div>
-      <div className="min-w-0 flex-1">
+    <div className="summary-card flex flex-col justify-center px-3 py-2 min-h-0">
+      <div className="min-w-0">
         <p
-          className="text-[10px] font-semibold uppercase tracking-widest leading-none mb-1"
+          className="flex items-start gap-2 text-[11px] font-bold uppercase leading-tight mb-1"
           style={{ color: 'var(--text-secondary)' }}
         >
-          {label}
+          <span
+            className="flex items-center justify-center rounded-md shrink-0"
+            style={{ width: 24, height: 24, backgroundColor: bg, color }}
+          >
+            {icon}
+          </span>
+          <span className="min-w-0 leading-tight">{label}</span>
         </p>
         {value}
       </div>
@@ -86,7 +83,7 @@ export function ThresholdCard() {
           icon={<IconAlert />}
           label="Warrant 1"
           value={
-            <p className="font-mono text-[15px] font-bold leading-none" style={{ color: 'var(--status-warn)' }}>
+            <p className="font-mono text-lg font-bold leading-none" style={{ color: 'var(--status-warn)' }}>
               PEIS {config ? config.warning : '—'}
             </p>
           }
@@ -99,7 +96,7 @@ export function ThresholdCard() {
           icon={<IconShield />}
           label="Warrant 2"
           value={
-            <p className="font-mono text-[15px] font-bold leading-none" style={{ color: 'var(--status-error)' }}>
+            <p className="font-mono text-lg font-bold leading-none" style={{ color: 'var(--status-error)' }}>
               PEIS {config ? config.warrant : '—'}
             </p>
           }
