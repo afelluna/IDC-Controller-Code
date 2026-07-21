@@ -167,7 +167,13 @@ export class ConfigController{
       let param = [warning, warrant, xthold, ythold, zthold];
 
       db.query(sql, param).then(result => {
-        responseHandler.sendResponse(res, "Successfuly update intensity info", 200, false); 
+        // Push the new thresholds to any open dashboards so the warrant tiers
+        // update immediately instead of only on the next page reload — the
+        // browser previously only read /getSensorConfig once on mount.
+        const io = req.app.get('socketio');
+        io.emit("thresholds_updated", { warning, warrant, xthold, ythold, zthold });
+
+        responseHandler.sendResponse(res, "Successfuly update intensity info", 200, false);
       }).catch(err => {
         responseHandler.sendResponse(res, "Error update intensity info", 200, true); 
       });

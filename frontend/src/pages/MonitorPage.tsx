@@ -79,6 +79,9 @@ export default function MonitorPage() {
       if (event.type === 'seismic.alert') {
         refreshAll();
       }
+      if (event.type === 'thresholds.updated') {
+        applyThresholds(event.data);
+      }
     }
   );
 
@@ -99,22 +102,27 @@ export default function MonitorPage() {
   // ─── Signal-animation thresholds (from configured warning/alert levels) ───
   // The intensity card's escalation follows the operator-set thresholds:
   // breathing at the warning level, critical pulse+wave at the alert (warrant)
-  // level. Read once from /getSensorConfig (a plain GET — no backend change);
-  // fall back to the legacy 5/8 feel if the device is unreachable.
+  // level. Loaded from /getSensorConfig on mount, and refreshed the instant
+  // Admin saves a change (see 'thresholds.updated' handling in the socket
+  // effect below) — Admin and the kiosk display are normally separate open
+  // tabs/devices, so without this a saved warrant only took effect on the
+  // dashboard's next reload. Falls back to the legacy 5/8 feel if the device
+  // is unreachable.
   const [warningLevel, setWarningLevel] = useState(5);
   const [alertLevel, setAlertLevel] = useState(8);
+
+  const applyThresholds = (d: any) => {
+    const warn = Number(d.warning);
+    const alert = Number(d.warrant);
+    if (Number.isFinite(warn) && warn > 0) setWarningLevel(warn);
+    // Keep alert at or above warning so tiers stay ordered.
+    if (Number.isFinite(alert) && alert > 0) setAlertLevel(Math.max(alert, warn || alert));
+  };
 
   useEffect(() => {
     seismicApi.getSensorConfig()
       .then((res) => {
-        if (res.success && res.data) {
-          const d = res.data as any;
-          const warn = Number(d.warning);
-          const alert = Number(d.warrant);
-          if (Number.isFinite(warn) && warn > 0) setWarningLevel(warn);
-          // Keep alert at or above warning so tiers stay ordered.
-          if (Number.isFinite(alert) && alert > 0) setAlertLevel(Math.max(alert, warn || alert));
-        }
+        if (res.success && res.data) applyThresholds(res.data);
       })
       .catch(() => {/* keep the 5/8 fallback */});
   }, []);

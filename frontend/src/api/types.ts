@@ -90,7 +90,7 @@ export interface VelocityResponse {
 
 // WebSocket Events
 export interface SeismicEvent {
-  type: 'seismic.alert' | 'seismic.update' | 'device.status';
+  type: 'seismic.alert' | 'seismic.update' | 'device.status' | 'thresholds.updated';
   data: SeismicDataResponse | SeismicHistoryResponse | any;
   timestamp: string;
 }
