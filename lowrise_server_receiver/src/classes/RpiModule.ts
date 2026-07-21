@@ -39,6 +39,19 @@ export default class RpiModule {
 	green: any;
 	yellow: any;
 	red: any;
+
+	// Tracks active alert status to prevent restarting audio mid-loop
+	currentStatus: string = "";
+	private pendingStatus: string = "";
+	private audioDebounceTimer: any = null;
+
+	// Priority weights: Higher numbers override lower numbers during rapid batch events
+	private statusPriority: Record<string, number> = {
+		"green": 1,
+		"yellow": 2,
+		"yellowred": 3
+	};
+
 	btn1: any;
 	btn2: any;
 	btn3: any;
@@ -298,6 +311,8 @@ export default class RpiModule {
 
 	setGpioLedVal(gpio: string) {
 		if (linuxPlat) {
+			this.runPA(gpio);
+
 			if (gpio == "green") {
 				this.green.writeSync(1);
 			} else if (gpio == "yellow") {
@@ -361,27 +376,56 @@ export default class RpiModule {
 
 
 	runPA(data: string) {
-		if (data) {
-			let source = "";
+		if (!data) return;
 
-			if (data == "green") {
-				source = "pa-green.mp3";
-			} else if (data == "yellow") {
-				source = "pa-yellow.mp3";
-			} else if (data == "yellowred") {
-				source = "pa-red.mp3";
-			}
+		const currentPendingPriority = this.statusPriority[this.pendingStatus] || 0;
+		const incomingPriority = this.statusPriority[data] || 0;
 
-			/*if (this.player.running) {
-				this.player.quit();
-			}
-
-			this.player = null;
-
-			this.player = OMXPlayer('assets/' + source, 'both', false, 0, true);
-			*/
+		// Higher priority status overrides lower priority status in the same batch window.
+		if (incomingPriority >= currentPendingPriority) {
+			this.pendingStatus = data;
 		}
 
-		console.log(data);
+		// Debounce window: Wait 150ms for rapid simultaneous triggers to finish firing.
+		if (this.audioDebounceTimer) {
+			clearTimeout(this.audioDebounceTimer);
+		}
+
+		this.audioDebounceTimer = setTimeout(() => {
+			this.executeAudioTransition(this.pendingStatus);
+			this.pendingStatus = "";
+		}, 150);
+	}
+
+	private executeAudioTransition(targetStatus: string) {
+		if (!targetStatus || targetStatus === this.currentStatus) {
+			return;
+		}
+
+		this.currentStatus = targetStatus;
+
+		let source = "";
+		let loopFlag = "";
+
+		if (targetStatus == "green") {
+			source = "pa-green.mp3";
+			loopFlag = ""; // Plays once
+		} else if (targetStatus == "yellow") {
+			source = "pa-yellow.mp3";
+			loopFlag = "--loop -1"; // Loops continuously during warning
+		} else if (targetStatus == "yellowred") {
+			source = "pa-red.mp3";
+			loopFlag = "--loop -1"; // Loops continuously during red alert
+		}
+
+		if (linuxPlat) {
+			if (source) {
+				exec(`pkill mpg123 > /dev/null 2>&1; mpg123 ${loopFlag} assets/${source} > /dev/null 2>&1 &`);
+			} else {
+				exec(`pkill mpg123 > /dev/null 2>&1 &`);
+			}
+		}
+
+		console.log("Audio alert status settled and transitioned to:", targetStatus);
 	}
 }
