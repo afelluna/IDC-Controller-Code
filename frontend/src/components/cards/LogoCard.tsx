@@ -5,7 +5,7 @@ export function LogoCard() {
   return (
     <Card
       className="flex items-center justify-center px-2 h-[46px] shrink-0"
-      style={{ background: 'linear-gradient(135deg, var(--brand) 0%, #3a5a70 100%)' }}
+      style={{ background: 'linear-gradient(135deg, var(--brand) 0%, var(--brand-gradient-end) 100%)' }}
     >
       <img
         src={usherMarker}

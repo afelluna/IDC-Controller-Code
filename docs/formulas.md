@@ -2,21 +2,25 @@
 
 ---
 
-## 1. PEIS Level from Peak Acceleration
+## 1. PEIS Level — Sensor Is the Single Source of Truth
 
-**Source:** `frontend/src/hooks/useWebSocket.ts` → `peisFromAccel()`
+**Source:** `Sensor Code/USHERv4.0/src/intensity.py` → `Intensity.calcPEIS()`
 
-Computed once per incoming socket batch (125 samples). The sensor hardcodes `intensity = 2` in every packet, so PEIS is always re-derived client-side from the raw accelerometer data.
+PEIS is **not** recomputed anywhere downstream. The sensor firmware classifies each sample's PEIS level itself and sends it as index `5` of every sample tuple (`[i, ts, x, y, z, intensity]`). The gateway backend only relays/logs that value (`UploadController.readDataLog` reads `data[5]` verbatim), and the frontend (`useWebSocket.ts`) reports it as-is — no client-side `accel → PEIS` recalculation, by design, for data-integrity/consistency across sensor → IDC → MDC → portal.
 
 ```
-peakAccel = max( √(x² + y² + z²) ) over all samples in the batch
-
-PEIS = f(peakAccel)   [see lookup table below]
+PEIS = sensor-reported intensity   (payload index 5, taken verbatim)
 ```
+
+`useWebSocket.ts` scans a batch (~125 samples/~250ms) for the sample with the highest `√(x²+y²+z²)` magnitude and reports **that one sample's** `x`, `y`, `z`, `intensity` together — never mixing fields from two different samples — so every on-screen readout (X/Y/Z, GND, PEIS, Peak Accel) always reflects a single snapshot.
+
+Because of this, the `INTENSITY_SCALE` table below (and the acceleration values shown alongside PEIS) are a **reference/legend only** — they do not drive what PEIS value is shown, and are not guaranteed to reconcile with it. See §2a.
+
+The old `/admin` "PEIS scale calibration" panel (`peisConfig.ts` / `PeisThresholdSettings.tsx`) edited a set of client-side boundaries that were never actually used to classify the live reading — it was a no-op with respect to what's displayed. **Removed 2026-07-22.**
 
 ---
 
-## 2. PEIS Lookup Table
+## 2. PEIS Lookup Table (Reference / Legend Only)
 
 **Source:** `frontend/src/constants/index.ts` → `INTENSITY_SCALE`
 
@@ -33,7 +37,29 @@ PEIS = f(peakAccel)   [see lookup table below]
 | 9 | 0.65 – 1.24 | Devastating | `#ff0000` |
 | 10 | ≥ 1.24 | Completely Devastating | `#c80000` |
 
-Thresholds are **lower-inclusive** (e.g. 0.0017 → PEIS 2, not PEIS 1).
+Thresholds are **lower-inclusive** (e.g. 0.0017 → PEIS 2, not PEIS 1). This table matches the standard PHIVOLCS PGA→PEIS scale.
+
+### 2a. ⚠️ Known divergence — sensor firmware is missing PEIS 3
+
+**Discovered 2026-07-22.** `Sensor Code/USHERv4.0/src/intensity.py:13-30` has a bug: its `elif` chain jumps straight from PEIS 2 to PEIS 4, so PEIS 3 is never assigned.
+
+```python
+if gval < 0.0017:                        peis = 1
+elif gval >= 0.0017 and gval < 0.014:    peis = 2   # ← should split at 0.005; PEIS 3 is missing
+elif gval >= 0.014 and gval < 0.039:     peis = 4
+elif gval >= 0.039 and gval < 0.092:     peis = 5
+elif gval >= 0.092 and gval < 0.18:      peis = 6
+elif gval >= 0.18 and gval < 0.34:       peis = 7
+elif gval >= 0.34 and gval < 0.65:       peis = 8
+elif gval >= 0.65 and gval < 1.24:       peis = 9
+elif gval >= 1.24:                       peis = 10
+```
+
+Levels 4–10 match the table above exactly. Only level 2's upper bound is wrong (`0.014` instead of `0.005`), swallowing the entire level-3 range (`0.005–0.014`) into level 2.
+
+**Verified live (2026-07-22):** GND readings of ~0.008–0.0098g (which should be PEIS 3 per the table above) were reported by the sensor as PEIS 2, consistent with this bug.
+
+**Decision:** per data-integrity requirements across sensor / IDC / MDC / portal, the frontend does **not** work around this by recomputing PEIS locally — it continues to display exactly what the sensor reports, bug included. Fixing this requires a firmware change in `Sensor Code/USHERv4.0/src/intensity.py`, deployed and verified separately (out of scope for the two web repos this CLAUDE.md covers). Until fixed, expect PEIS 2 readouts to sometimes cover ground accelerations that this table's own legend would call PEIS 3.
 
 ---
 

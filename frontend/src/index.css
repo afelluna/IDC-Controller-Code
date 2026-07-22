@@ -39,6 +39,9 @@
   /* Brand */
   --brand:          #4c6e8c;
   --brand-dim:      #e6edf0;
+  /* Derived, not a fixed hex — always harmonizes with --brand per theme
+     instead of drifting the way a hardcoded gradient stop would. */
+  --brand-gradient-end: color-mix(in srgb, var(--brand) 60%, black);
 
   /* Semantic Status — muted, blue-green-leaning palette */
   --status-live:    #5e8c6a;   /* sage green  — confirmed signal / active */

@@ -60,21 +60,21 @@ export function IntensityDisplay({
         {/* Shield mark + number — logo watermarked directly behind the digit, centered on it */}
         <span
           className="relative flex items-center justify-center shrink-0"
-          style={{ width: 'clamp(90px, 78cqh, 220px)', height: 'clamp(90px, 78cqh, 220px)' }}
+          style={{ width: 'clamp(96px, 84cqh, 236px)', height: 'clamp(96px, 84cqh, 236px)' }}
         >
           <img
             src={usherLogo}
             alt=""
             aria-hidden="true"
             className="absolute inset-0 w-full h-full object-contain"
-            style={{ opacity: 0.22, mixBlendMode: 'multiply', transform: 'scale(1.2)' }}
+            style={{ opacity: 0.1, mixBlendMode: 'multiply', transform: 'scale(1.2)' }}
           />
 
           <span
             className="relative font-bold leading-none transition-colors duration-500"
             style={{
               color: currentIntensityData.text,
-              fontSize: 'clamp(56px, 66cqh, 180px)',
+              fontSize: 'clamp(60px, 71cqh, 194px)',
               textShadow: intensity <= 2
                 ? '0 2px 10px rgba(0,0,0,0.10)'
                 : '0 2px 18px rgba(0,0,0,0.28)',

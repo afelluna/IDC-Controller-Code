@@ -138,10 +138,11 @@ export const useWebSocket = (
             // display never shows or holds the peak that actually crossed a
             // warrant threshold. Scan the whole batch for its peak sample
             // (by acceleration magnitude, matching how intensity escalates)
-            // and report both peakAccel and that sample's intensity.
-            const latest = samples[samples.length - 1];
-            let peak = latest;
-            let peakAccel = Math.sqrt(latest.x ** 2 + latest.y ** 2 + latest.z ** 2);
+            // and report that one sample's x/y/z, intensity, and peakAccel
+            // together — every displayed readout (X/Y/Z, GND, PEIS) must come
+            // from the exact same sample, never mixed across two samples.
+            let peak = samples[samples.length - 1];
+            let peakAccel = Math.sqrt(peak.x ** 2 + peak.y ** 2 + peak.z ** 2);
             for (const s of samples) {
               const mag = Math.sqrt(s.x ** 2 + s.y ** 2 + s.z ** 2);
               if (mag > peakAccel) {
@@ -149,11 +150,10 @@ export const useWebSocket = (
                 peak = s;
               }
             }
-            const intensity = peak.intensity;
 
             const seismicEvent: SeismicEvent = {
               type: 'seismic.update',
-              data: { ...latest, intensity, peakAccel, samples },
+              data: { ...peak, peakAccel, samples },
               timestamp: new Date().toISOString(),
             };
             if (isMounted) setState(prev => ({ ...prev, lastEvent: seismicEvent }));

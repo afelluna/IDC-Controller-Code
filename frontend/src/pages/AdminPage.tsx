@@ -4,7 +4,6 @@ import { Monitor, LogOut } from 'lucide-react';
 import { useAuth } from '../auth/useAuth';
 import usherMarker from '../assets/usher-marker.svg';
 import { ThresholdSettings } from '../components/admin/ThresholdSettings';
-import { PeisThresholdSettings } from '../components/admin/PeisThresholdSettings';
 import { ChangePassword } from '../components/admin/ChangePassword';
 import { EventList } from '../components/admin/EventList';
 
@@ -36,7 +35,7 @@ export default function AdminPage() {
         <div className="flex items-center gap-2.5">
           <div
             className="flex items-center justify-center rounded-lg px-2 h-9 shrink-0"
-            style={{ background: 'linear-gradient(135deg, var(--brand) 0%, #3a5a70 100%)' }}
+            style={{ background: 'linear-gradient(135deg, var(--brand) 0%, var(--brand-gradient-end) 100%)' }}
           >
             <img src={usherMarker} alt="USHER" className="h-5 w-auto brightness-0 invert" />
           </div>
@@ -73,7 +72,6 @@ export default function AdminPage() {
           <ThresholdSettings />
           <ChangePassword />
         </div>
-        <PeisThresholdSettings />
         <EventList />
       </main>
     </div>

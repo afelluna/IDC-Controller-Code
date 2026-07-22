@@ -110,7 +110,7 @@ export function ChangePassword() {
             type="submit"
             disabled={saving || !newPass || !confirm || mismatch}
             className="rounded-lg px-4 py-2 text-sm font-semibold flex items-center gap-2 transition-opacity disabled:opacity-50"
-            style={{ backgroundColor: 'var(--brand)', color: '#ffffff' }}
+            style={{ backgroundColor: 'var(--brand)', color: 'var(--text-on-accent)' }}
           >
             {saving && <Loader2 size={15} className="animate-spin" />}
             {saving ? 'Updating…' : 'Update password'}
