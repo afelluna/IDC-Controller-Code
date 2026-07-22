@@ -39,6 +39,7 @@ export function EventList() {
   const [loading, setLoading] = useState(true);
   const [loadingFull, setLoadingFull] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fullError, setFullError] = useState<string | null>(null);
   const [dateFilter, setDateFilter] = useState('');
   const [peisFilter, setPeisFilter] = useState('');
   const [page, setPage] = useState(1);
@@ -54,6 +55,7 @@ export function EventList() {
   const load = async () => {
     setLoading(true);
     setError(null);
+    setFullError(null);
     setShowingAll(false);
     try {
       const res = await seismicApi.getHistoryMax();
@@ -72,17 +74,17 @@ export function EventList() {
 
   const loadFull = async () => {
     setLoadingFull(true);
-    setError(null);
+    setFullError(null);
     try {
       const res = await seismicApi.getAllHistoryMax();
       if (res.success && res.data?.history) {
         setRows(res.data.history as HistoryRow[]);
         setShowingAll(true);
       } else {
-        setError(res.message || 'No history available.');
+        setFullError(res.message || 'No full history available.');
       }
     } catch {
-      setError('Could not reach the device — full history can take a while on units with a lot of data.');
+      setFullError('Could not load full history — the device may still be busy scanning older files.');
     } finally {
       setLoadingFull(false);
     }
@@ -198,6 +200,15 @@ export function EventList() {
           style={{ color: 'var(--text-muted)', backgroundColor: 'var(--bg-elevated)' }}
         >
           Showing recent events only. "Load full history" scans every event ever recorded — can be slow on a unit with a lot of history.
+        </div>
+      )}
+
+      {fullError && (
+        <div
+          className="px-4 py-1.5 text-[11px] font-medium"
+          style={{ color: 'var(--status-error)', backgroundColor: 'rgba(193,96,92,0.10)' }}
+        >
+          {fullError}
         </div>
       )}
 

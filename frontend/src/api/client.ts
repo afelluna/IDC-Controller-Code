@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosResponse } from 'axios';
+import axios, { AxiosInstance, AxiosResponse, type AxiosRequestConfig } from 'axios';
 import type { BackendResponse, ApiError } from './types';
 import { getApiBase } from './runtimeConfig';
 
@@ -55,8 +55,12 @@ class ApiClient {
   }
 
   // Generic HTTP methods
-  async get<T>(url: string, params?: Record<string, any>): Promise<BackendResponse<T>> {
-    const response = await this.client.get<BackendResponse<T>>(url, { params });
+  async get<T>(
+    url: string,
+    params?: Record<string, any>,
+    config?: AxiosRequestConfig,
+  ): Promise<BackendResponse<T>> {
+    const response = await this.client.get<BackendResponse<T>>(url, { ...config, params });
     return response.data;
   }
 

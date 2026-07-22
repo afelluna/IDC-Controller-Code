@@ -19,7 +19,7 @@ export const seismicApi = {
 
   // Get all maximum intensity history
   getAllHistoryMax: (): Promise<BackendResponse<any>> =>
-    apiClient.get('/getAllHistoryMax'),
+    apiClient.get('/getAllHistoryMax', undefined, { timeout: 180000 }),
 
   // Get storage/disk space information
   getStorageInfo: (): Promise<BackendResponse<any>> =>
