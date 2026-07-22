@@ -45,7 +45,7 @@ export async function loadRuntimeConfig(): Promise<void> {
 }
 
 /**
- * Resolved backend base URL (`http://{ip}:{port}`) used for both REST (axios)
+ * Resolved backend base URL (`http://{ip}:{port}`) used for both REST (fetch)
  * and Socket.IO. Resolves lazily to the env/localhost fallback if
  * loadRuntimeConfig() has not completed, so nothing breaks.
  */

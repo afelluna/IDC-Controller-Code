@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { SlidersHorizontal, Loader2, Check } from 'lucide-react';
 import { Card } from '../ui/Card';
+import { Icon } from '../ui/Icon';
 import { seismicApi } from '../../api/seismicApi';
 
 type Fields = 'warning' | 'warrant' | 'xthold' | 'ythold' | 'zthold';
@@ -89,7 +89,7 @@ export function ThresholdSettings() {
         className="px-4 py-3 flex items-center gap-2"
         style={{ borderBottom: '1px solid var(--border-subtle)' }}
       >
-        <SlidersHorizontal size={16} style={{ color: 'var(--brand)' }} />
+        <Icon name="sliders-horizontal" size={16} style={{ color: 'var(--brand)' }} />
         <h2 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
           Intensity thresholds
         </h2>
@@ -98,7 +98,7 @@ export function ThresholdSettings() {
       <form onSubmit={onSubmit} className="p-4 flex flex-col gap-3">
         {loading ? (
           <div className="flex items-center gap-2 py-6 justify-center" style={{ color: 'var(--text-muted)' }}>
-            <Loader2 size={16} className="animate-spin" /> Loading current settings…
+            <Icon name="loader" size={16} className="animate-spin" /> Loading current settings…
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -135,7 +135,7 @@ export function ThresholdSettings() {
                 : { backgroundColor: 'rgba(193,96,92,0.12)', color: 'var(--status-error)' }
             }
           >
-            {message.type === 'ok' && <Check size={13} />}
+            {message.type === 'ok' && <Icon name="check" size={13} />}
             {message.text}
           </p>
         )}
@@ -147,7 +147,7 @@ export function ThresholdSettings() {
             className="rounded-lg px-4 py-2 text-sm font-semibold flex items-center gap-2 transition-opacity disabled:opacity-50"
             style={{ backgroundColor: 'var(--brand)', color: 'var(--text-on-accent)' }}
           >
-            {saving && <Loader2 size={15} className="animate-spin" />}
+            {saving && <Icon name="loader" size={15} className="animate-spin" />}
             {saving ? 'Saving…' : 'Save thresholds'}
           </button>
         </div>

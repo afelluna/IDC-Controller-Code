@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Monitor, LogOut } from 'lucide-react';
 import { useAuth } from '../auth/useAuth';
 import usherMarker from '../assets/usher-marker.svg';
+import { Icon } from '../components/ui/Icon';
 import { ThresholdSettings } from '../components/admin/ThresholdSettings';
 import { ChangePassword } from '../components/admin/ChangePassword';
 import { EventList } from '../components/admin/EventList';
@@ -54,14 +54,14 @@ export default function AdminPage() {
             className="rounded-lg px-3 py-2 text-xs font-semibold flex items-center gap-1.5 transition-colors"
             style={{ backgroundColor: 'var(--bg-elevated)', color: 'var(--text-secondary)' }}
           >
-            <Monitor size={14} /> Monitor
+            <Icon name="monitor" size={14} /> Monitor
           </Link>
           <button
             onClick={onLogout}
             className="rounded-lg px-3 py-2 text-xs font-semibold flex items-center gap-1.5 transition-colors"
             style={{ backgroundColor: 'var(--bg-elevated)', color: 'var(--text-secondary)' }}
           >
-            <LogOut size={14} /> Sign out
+            <Icon name="log-out" size={14} /> Sign out
           </button>
         </div>
       </header>

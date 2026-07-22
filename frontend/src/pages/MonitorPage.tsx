@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { AlertTriangle, CalendarClock, Sun, Moon } from 'lucide-react';
+import { Icon } from '../components/ui/Icon';
 
 // Components
 import { SummaryCard } from '../components/cards/SummaryCard';
@@ -287,10 +287,12 @@ export default function MonitorPage() {
               border: '1px solid var(--border-default)',
             }}
           >
-            {theme === 'dark' ? <Sun size={12} strokeWidth={2.25} /> : <Moon size={12} strokeWidth={2.25} />}
+            {theme === 'dark'
+              ? <Icon name="sun" size={12} strokeWidth={2.25} />
+              : <Icon name="moon" size={12} strokeWidth={2.25} />}
           </button>
           <span className="flex items-center gap-1.5" style={{ color: 'var(--brand)' }}>
-            <CalendarClock size={13} strokeWidth={2.25} className="shrink-0" />
+            <Icon name="calendar-clock" size={13} strokeWidth={2.25} className="shrink-0" />
             <span className="font-mono text-[11px] uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
               {clock} PHT
             </span>
@@ -318,7 +320,7 @@ export default function MonitorPage() {
             height: 19,
           }}
         >
-          <AlertTriangle size={11} strokeWidth={2.5} className="shrink-0" />
+          <Icon name="alert-triangle" size={11} strokeWidth={2.5} className="shrink-0" />
           <span className="text-[9px] font-bold uppercase tracking-wide truncate">
             {faults.map((f) => f.message).join('  ·  ')}
           </span>

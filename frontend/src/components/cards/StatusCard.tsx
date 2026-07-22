@@ -1,5 +1,5 @@
-import { Wifi, Box, Server, Clock, type LucideIcon } from 'lucide-react';
 import { Card } from '../ui/Card';
+import { Icon, type IconName } from '../ui/Icon';
 
 type DotState = 'live' | 'scanning' | 'idle' | 'error';
 
@@ -23,11 +23,11 @@ const DOT_STYLE: Record<DotState, string> = {
 // Purely presentational — maps the row's existing label text to a leading
 // icon. Falls back to a neutral dot-less icon if a label doesn't match, so
 // this stays safe if statusData in MonitorPage ever adds a new row.
-const ROW_ICON: Record<string, LucideIcon> = {
-  'Connection':  Wifi,
-  'Node':        Box,
-  'Server':      Server,
-  'Last update': Clock,
+const ROW_ICON: Record<string, IconName> = {
+  'Connection':  'wifi',
+  'Node':        'box',
+  'Server':      'server',
+  'Last update': 'clock',
 };
 
 export function StatusCard({ status }: StatusCardProps) {
@@ -49,14 +49,14 @@ export function StatusCard({ status }: StatusCardProps) {
           between rows instead of leaving it as dead margin top and bottom. */}
       <div className="flex-1 flex flex-col justify-evenly">
         {status.map((row, i) => {
-          const Icon = ROW_ICON[row.label];
+          const icon = ROW_ICON[row.label];
           return (
             <div
               key={i}
               className="flex justify-between items-center"
             >
               <span className="flex items-center gap-1.5" style={{ color: 'var(--text-secondary)' }}>
-                {Icon && <Icon size={11} strokeWidth={2.2} style={{ color: 'var(--text-muted)' }} />}
+                {icon && <Icon name={icon} size={11} strokeWidth={2.2} style={{ color: 'var(--text-muted)' }} />}
                 <span className="text-[10px] font-medium">{row.label}</span>
               </span>
               {/* Value first, dot last — dots form one aligned column at the

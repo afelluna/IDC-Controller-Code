@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ListOrdered, Loader2, RefreshCw, ChevronLeft, ChevronRight, History } from 'lucide-react';
 import { Card } from '../ui/Card';
+import { Icon } from '../ui/Icon';
 import { seismicApi } from '../../api/seismicApi';
 import { INTENSITY_SCALE } from '../../constants';
 
@@ -125,7 +125,7 @@ export function EventList() {
         style={{ borderBottom: '1px solid var(--border-subtle)' }}
       >
         <div className="flex items-center gap-2">
-          <ListOrdered size={16} style={{ color: 'var(--brand)' }} />
+          <Icon name="list-ordered" size={16} style={{ color: 'var(--brand)' }} />
           <h2 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
             Event log
           </h2>
@@ -179,7 +179,9 @@ export function EventList() {
               className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold flex items-center gap-1.5 transition-opacity disabled:opacity-60"
               style={{ backgroundColor: 'var(--bg-elevated)', color: 'var(--text-secondary)' }}
             >
-              {loadingFull ? <Loader2 size={13} className="animate-spin" /> : <History size={13} />}
+              {loadingFull
+                ? <Icon name="loader" size={13} className="animate-spin" />
+                : <Icon name="history" size={13} />}
               {loadingFull ? 'Scanning…' : 'Load full history'}
             </button>
           )}
@@ -189,7 +191,7 @@ export function EventList() {
             className="rounded-lg p-1.5 transition-colors"
             style={{ backgroundColor: 'var(--bg-elevated)', color: 'var(--text-secondary)' }}
           >
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            <Icon name="refresh-cw" size={14} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
       </div>
@@ -215,7 +217,7 @@ export function EventList() {
       <div className="p-2">
         {loading ? (
           <div className="flex items-center gap-2 py-10 justify-center" style={{ color: 'var(--text-muted)' }}>
-            <Loader2 size={16} className="animate-spin" /> Loading events…
+            <Icon name="loader" size={16} className="animate-spin" /> Loading events…
           </div>
         ) : error ? (
           <div className="py-10 text-center text-sm" style={{ color: 'var(--text-muted)' }}>{error}</div>
@@ -280,7 +282,7 @@ export function EventList() {
               className="rounded-lg p-1.5 transition-opacity disabled:opacity-40"
               style={{ backgroundColor: 'var(--bg-elevated)', color: 'var(--text-secondary)' }}
             >
-              <ChevronLeft size={14} />
+              <Icon name="chevron-left" size={14} />
             </button>
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
@@ -288,7 +290,7 @@ export function EventList() {
               className="rounded-lg p-1.5 transition-opacity disabled:opacity-40"
               style={{ backgroundColor: 'var(--bg-elevated)', color: 'var(--text-secondary)' }}
             >
-              <ChevronRight size={14} />
+              <Icon name="chevron-right" size={14} />
             </button>
           </div>
         </div>

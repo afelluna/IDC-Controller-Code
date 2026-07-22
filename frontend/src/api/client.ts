@@ -1,95 +1,102 @@
-import axios, { AxiosInstance, AxiosResponse, type AxiosRequestConfig } from 'axios';
 import type { BackendResponse, ApiError } from './types';
 import { getApiBase } from './runtimeConfig';
 
+interface RequestConfig {
+  timeout?: number;
+}
+
 class ApiClient {
-  private client: AxiosInstance;
+  private readonly defaultTimeout = 30000;
 
-  constructor() {
-    this.client = axios.create({
-      // baseURL is resolved per-request from the runtime config (see below),
-      // so we don't pin it here — the axios singleton is built at import time,
-      // before config.json has loaded.
-      timeout: 30000,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-    });
+  private async request<T>(
+    method: string,
+    url: string,
+    data?: unknown,
+    params?: Record<string, any>,
+    config?: RequestConfig,
+  ): Promise<BackendResponse<T>> {
+    const target = new URL(url, getApiBase());
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) target.searchParams.set(key, String(value));
+      });
+    }
 
-    this.setupInterceptors();
-  }
+    const controller = new AbortController();
+    const timeoutMs = config?.timeout ?? this.defaultTimeout;
+    const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
 
-  private setupInterceptors() {
-    // Request interceptor - resolve backend base URL at call time from the
-    // runtime config (config.json {ip,port}), matching the old Angular app.
-    this.client.interceptors.request.use((config) => {
-      config.baseURL = getApiBase();
-      return config;
-    });
+    try {
+      const response = await fetch(target.toString(), {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: data === undefined ? undefined : JSON.stringify(data),
+        signal: controller.signal,
+      });
 
-    // Response interceptor - Normalize backend response format
-    this.client.interceptors.response.use(
-      (response: AxiosResponse) => {
-        const { error, message, data } = response.data;
-        
-        // Normalize { error, message, data } -> { success, message, data }
-        response.data = {
-          success: !error,
-          message,
-          data
-        };
-        
-        return response;
-      },
-      (error) => {
-        const apiError: ApiError = {
-          message: error.response?.data?.message || error.message || 'An error occurred',
-          status: error.response?.status || 500,
-          errors: error.response?.data?.errors,
-        };
+      const text = await response.text();
+      const payload = text ? JSON.parse(text) : {};
 
-        return Promise.reject(apiError);
+      if (!response.ok) {
+        throw {
+          message: payload?.message || response.statusText || 'An error occurred',
+          status: response.status,
+          errors: payload?.errors,
+        } satisfies ApiError;
       }
-    );
+
+      return {
+        success: !payload?.error,
+        message: payload?.message,
+        data: payload?.data,
+      };
+    } catch (err: any) {
+      if (err?.name === 'AbortError') {
+        throw {
+          message: `Request timed out after ${Math.round(timeoutMs / 1000)}s`,
+          status: 408,
+        } satisfies ApiError;
+      }
+
+      if (typeof err?.status === 'number') throw err;
+
+      throw {
+        message: err?.message || 'An error occurred',
+        status: 500,
+        errors: err?.errors,
+      } satisfies ApiError;
+    } finally {
+      window.clearTimeout(timeoutId);
+    }
   }
 
-  // Generic HTTP methods
   async get<T>(
     url: string,
     params?: Record<string, any>,
-    config?: AxiosRequestConfig,
+    config?: RequestConfig,
   ): Promise<BackendResponse<T>> {
-    const response = await this.client.get<BackendResponse<T>>(url, { ...config, params });
-    return response.data;
+    return this.request<T>('GET', url, undefined, params, config);
   }
 
   async post<T>(url: string, data?: any): Promise<BackendResponse<T>> {
-    const response = await this.client.post<BackendResponse<T>>(url, data);
-    return response.data;
+    return this.request<T>('POST', url, data);
   }
 
   async put<T>(url: string, data?: any): Promise<BackendResponse<T>> {
-    const response = await this.client.put<BackendResponse<T>>(url, data);
-    return response.data;
+    return this.request<T>('PUT', url, data);
   }
 
   async patch<T>(url: string, data?: any): Promise<BackendResponse<T>> {
-    const response = await this.client.patch<BackendResponse<T>>(url, data);
-    return response.data;
+    return this.request<T>('PATCH', url, data);
   }
 
   async delete<T>(url: string): Promise<BackendResponse<T>> {
-    const response = await this.client.delete<BackendResponse<T>>(url);
-    return response.data;
-  }
-
-  // Raw axios instance for custom requests
-  get axiosInstance(): AxiosInstance {
-    return this.client;
+    return this.request<T>('DELETE', url);
   }
 }
 
-// Export singleton instance
 export const apiClient = new ApiClient();
 export default apiClient;
