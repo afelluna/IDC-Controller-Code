@@ -14,6 +14,10 @@ export interface SensorConfig {
   zthold: number;
   admin_def_username?: string;
   admin_def_pass?: string;
+  device_name?: string | null;
+  location?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export interface ApiResponse<T> extends BackendResponse<T> {}

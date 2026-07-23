@@ -53,8 +53,8 @@ function fullRange(_u: uPlot, dataMin: number, dataMax: number): [number, number
 }
 
 const CHART_PALETTE = {
-  light: { well: '#ffffff' },
-  dark: { well: '#0a121c' },
+  light: { well: '#ffffff', grid: '#e7edec', tick: '#d7e1e0', axisText: '#93a3a6' },
+  dark: { well: '#0a121c', grid: 'rgba(140,180,220,0.14)', tick: 'rgba(140,180,220,0.28)', axisText: '#7e93a8' },
 };
 
 export const Seismogram = forwardRef<SeismogramHandle, SeismogramProps>(
@@ -62,48 +62,51 @@ export const Seismogram = forwardRef<SeismogramHandle, SeismogramProps>(
     const palette = CHART_PALETTE[theme];
     const chartRef = useRef<UplotReactHandle>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    const tooltipRef = useRef<HTMLDivElement>(null);
 
     // High-performance rolling buffer for uPlot: [times, xs, ys, zs]. Passed
     // to UplotReact as a stable reference (created once, mutated in place,
     // never reassigned) — a fresh array/tuple here on every render would
     // retrigger UplotReact's own setData effect every render and stomp the
-    // chart back to empty between drain-loop frames. That was the actual
-    // cause of an earlier flicker bug: a plain re-render clearing the chart,
-    // not the data itself misbehaving.
+    // chart back to empty between paints. That was the actual cause of an
+    // earlier flicker bug: a plain re-render clearing the chart, not the
+    // data itself misbehaving.
     const chartDataRef = useRef<[number[], number[], number[], number[]]>([[], [], [], []]);
     const rafRef = useRef<number>(0);
+    const dirtyRef = useRef(false);
 
-    const pendingRef = useRef<SensorSample[]>([]);
-    const samplesPerFrameRef = useRef<number>(4);
+    // Per-axis DC baseline (mounting/gravity offset), removed before a
+    // sample ever reaches the chart buffer. Real X/Y/Z accelerometer output
+    // rarely shares a common zero — each axis carries its own static
+    // offset — so plotting raw values puts each trace at a different
+    // height instead of overlapping. A slow exponential baseline tracks
+    // that offset per axis and gets subtracted for the chart only (the
+    // live X/Y/Z/GND readout above still shows true raw values), so all
+    // three traces oscillate around the same shared centerline the way a
+    // real seismograph overlay does — actual ground-motion swings are far
+    // faster than BASELINE_ALPHA can track, so they aren't smoothed away.
+    const BASELINE_ALPHA = 0.002;
+    const baselineRef = useRef<{ x: number | null; y: number | null; z: number | null }>({
+      x: null, y: null, z: null,
+    });
 
-    const drainRef = useRef<() => void>(() => {});
+    // Grouped batching: each incoming socket batch is appended to the
+    // buffer in one shot (not trickled sample-by-sample across many
+    // animation frames — that approach traded latency for smoothness,
+    // holding the newest sample off-screen until the whole batch had
+    // drained, up to a full ~250ms batch period later). A batch just marks
+    // the buffer dirty; the actual setData()/repaint is coalesced to at
+    // most once per animation frame, so back-to-back batches arriving
+    // faster than paint still collapse into a single repaint instead of
+    // one setData() call each. Net effect: new data is on screen within a
+    // frame (~16ms) of arriving, and bursts don't cause redundant repaints.
+    const flushRef = useRef<() => void>(() => {});
     useEffect(() => {
-      drainRef.current = () => {
+      flushRef.current = () => {
         rafRef.current = 0;
-        const pending = pendingRef.current;
-        if (!pending.length || !chartRef.current?.instance) return;
-
-        const count = Math.min(samplesPerFrameRef.current, pending.length);
-        const buf = chartDataRef.current;
-        for (let i = 0; i < count; i++) {
-          const s = pending.shift()!;
-          buf[0].push(s.timestamp / 1000);
-          buf[1].push(s.x);
-          buf[2].push(s.y);
-          buf[3].push(s.z);
-        }
-        const excess = buf[0].length - MAX_DATAPOINTS;
-        if (excess > 0) {
-          buf[0].splice(0, excess);
-          buf[1].splice(0, excess);
-          buf[2].splice(0, excess);
-          buf[3].splice(0, excess);
-        }
-        chartRef.current.instance.setData(buf);
-
-        if (pending.length > 0) {
-          rafRef.current = requestAnimationFrame(() => drainRef.current());
-        }
+        if (!dirtyRef.current || !chartRef.current?.instance) return;
+        dirtyRef.current = false;
+        chartRef.current.instance.setData(chartDataRef.current);
       };
     }, []);
 
@@ -117,19 +120,31 @@ export const Seismogram = forwardRef<SeismogramHandle, SeismogramProps>(
           : rawSamples;
         if (!samples.length) return;
 
-        if (samples.length > 1) {
-          const batchSpan = samples[samples.length - 1].timestamp - samples[0].timestamp || 545;
-          samplesPerFrameRef.current = Math.max(1, Math.ceil(samples.length / (batchSpan / 16.67)));
+        const buf = chartDataRef.current;
+        const base = baselineRef.current;
+        for (const s of samples) {
+          if (base.x === null) { base.x = s.x; base.y = s.y; base.z = s.z; }
+          else {
+            base.x += (s.x - base.x) * BASELINE_ALPHA;
+            base.y += (s.y - base.y) * BASELINE_ALPHA;
+            base.z += (s.z - base.z) * BASELINE_ALPHA;
+          }
+          buf[0].push(s.timestamp / 1000);
+          buf[1].push(s.x - base.x);
+          buf[2].push(s.y - base.y);
+          buf[3].push(s.z - base.z);
+        }
+        const excess = buf[0].length - MAX_DATAPOINTS;
+        if (excess > 0) {
+          buf[0].splice(0, excess);
+          buf[1].splice(0, excess);
+          buf[2].splice(0, excess);
+          buf[3].splice(0, excess);
         }
 
-        const cap = samples.length * 2;
-        if (pendingRef.current.length > cap) {
-          pendingRef.current.splice(0, pendingRef.current.length - cap);
-        }
-        pendingRef.current.push(...samples);
-
+        dirtyRef.current = true;
         if (!rafRef.current) {
-          rafRef.current = requestAnimationFrame(() => drainRef.current());
+          rafRef.current = requestAnimationFrame(() => flushRef.current());
         }
       },
     }));
@@ -139,10 +154,17 @@ export const Seismogram = forwardRef<SeismogramHandle, SeismogramProps>(
       if (!livePoint?.raw || livePoint.rawSamples?.length) return;
       const { time, x, y, z } = livePoint.raw;
       const buf = chartDataRef.current;
+      const base = baselineRef.current;
+      if (base.x === null) { base.x = x; base.y = y; base.z = z; }
+      else {
+        base.x += (x - base.x) * BASELINE_ALPHA;
+        base.y += (y - base.y) * BASELINE_ALPHA;
+        base.z += (z - base.z) * BASELINE_ALPHA;
+      }
       buf[0].push(time / 1000);
-      buf[1].push(x);
-      buf[2].push(y);
-      buf[3].push(z);
+      buf[1].push(x - base.x);
+      buf[2].push(y - base.y);
+      buf[3].push(z - base.z);
       while (buf[0].length > MAX_DATAPOINTS) {
         buf[0].shift(); buf[1].shift(); buf[2].shift(); buf[3].shift();
       }
@@ -155,8 +177,18 @@ export const Seismogram = forwardRef<SeismogramHandle, SeismogramProps>(
       height: 300,
       // Minimal padding — the traces should fill the panel edge-to-edge.
       padding: [2, 2, 2, 2] as [number, number, number, number],
+      // No built-in legend row (the color-coded key below the chart already
+      // does that job) — hover values are rendered by the custom tooltip
+      // driven by hooks.setCursor below, closer to the old Angular/Highcharts
+      // hover-to-inspect experience than uPlot's default legend table.
       legend: { show: false },
-      cursor: { show: false },
+      cursor: {
+        show: true,
+        x: true,
+        y: false,
+        points: { show: true, size: 6, width: 1 },
+        drag: { x: false, y: false, setScale: false },
+      },
       select: { show: false },
       scales: {
         x: { time: true },
@@ -166,18 +198,73 @@ export const Seismogram = forwardRef<SeismogramHandle, SeismogramProps>(
         // fixed fraction of it.
         y: { range: fullRange },
       },
-      // No axes/gridlines — the color-coded legend row below is what makes
-      // the three overlaid traces distinguishable, not chart chrome.
+      // No axes/gridlines/labels — the color-coded legend row below is
+      // what makes the three overlaid traces distinguishable, and exact
+      // values come from the live readout above and the hover tooltip, not
+      // chart chrome.
       axes: [{ show: false }, { show: false }],
       series: [
         {},
         ...AXES.map(a => ({ label: a.label, stroke: a.stroke, width: 1.25, points: { show: false } })),
       ],
-    }), []);
+      hooks: {
+        setCursor: [
+          (u: uPlot) => {
+            const tt = tooltipRef.current;
+            const well = containerRef.current;
+            if (!tt || !well) return;
+
+            const idx = u.cursor.idx;
+            const left = u.cursor.left;
+            const top = u.cursor.top;
+            if (idx == null || left == null || top == null || left < 0) {
+              tt.style.display = 'none';
+              return;
+            }
+
+            const buf = chartDataRef.current;
+            const t = buf[0][idx];
+            if (t == null) {
+              tt.style.display = 'none';
+              return;
+            }
+            const x = buf[1][idx];
+            const y = buf[2][idx];
+            const z = buf[3][idx];
+            const time = new Date(t * 1000);
+            const hh = String(time.getHours()).padStart(2, '0');
+            const mm = String(time.getMinutes()).padStart(2, '0');
+            const ss = String(time.getSeconds()).padStart(2, '0');
+            const ms = String(time.getMilliseconds()).padStart(3, '0');
+
+            tt.innerHTML = `
+              <div style="font-weight:700;opacity:0.7;margin-bottom:2px;">${hh}:${mm}:${ss}.${ms}</div>
+              <div style="color:${AXES[0].stroke}">X&nbsp; ${x.toFixed(5)} G</div>
+              <div style="color:${AXES[1].stroke}">Y&nbsp; ${y.toFixed(5)} G</div>
+              <div style="color:${AXES[2].stroke}">Z&nbsp; ${z.toFixed(5)} G</div>
+            `;
+            tt.style.display = 'block';
+
+            // Position near the cursor, clamped so it never overflows the
+            // plotting well (right/bottom edges especially, since the cursor
+            // tends to sit near them while scanning recent data).
+            const wellW = well.clientWidth;
+            const wellH = well.clientHeight;
+            const ttW = tt.offsetWidth;
+            const ttH = tt.offsetHeight;
+            let tx = left + 12;
+            let ty = top + 12;
+            if (tx + ttW > wellW) tx = left - ttW - 12;
+            if (ty + ttH > wellH) ty = top - ttH - 12;
+            tt.style.left = `${Math.max(0, tx)}px`;
+            tt.style.top = `${Math.max(0, ty)}px`;
+          },
+        ],
+      },
+    }), [palette]);
 
     useEffect(() => () => {
       cancelAnimationFrame(rafRef.current);
-      pendingRef.current = [];
     }, []);
 
     // Resize handling via ResizeObserver
@@ -242,6 +329,22 @@ export const Seismogram = forwardRef<SeismogramHandle, SeismogramProps>(
               options={options}
               data={chartDataRef.current}
               className="w-full h-full"
+            />
+
+            {/* Hover tooltip — X/Y/Z at the cursored sample, positioned by
+                hooks.setCursor above. Hidden by default; display is toggled
+                per-frame as the cursor moves on/off the plot. */}
+            <div
+              ref={tooltipRef}
+              className="absolute z-20 pointer-events-none rounded-md px-2 py-1.5 font-mono text-[11px] leading-tight"
+              style={{
+                display: 'none',
+                backgroundColor: theme === 'dark' ? 'rgba(10,16,24,0.92)' : 'rgba(255,255,255,0.96)',
+                border: '1px solid var(--border-subtle)',
+                color: 'var(--text-primary)',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+                whiteSpace: 'nowrap',
+              }}
             />
           </div>
 

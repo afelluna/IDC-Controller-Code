@@ -4,10 +4,11 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import MonitorPage from './pages/MonitorPage';
 import { RequireAuth } from './auth/RequireAuth';
 
-// Admin area is maintenance-only and never reached on the kiosk monitor, so
-// split it out of the main bundle and load it on demand.
-const AdminLogin = lazy(() => import('./pages/AdminLogin'));
-const AdminPage = lazy(() => import('./pages/AdminPage'));
+// Tech-support/client areas are never reached on the kiosk monitor, so
+// split them out of the main bundle and load on demand.
+const TechLogin = lazy(() => import('./pages/TechLogin'));
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 
 export default function App() {
   return (
@@ -17,16 +18,29 @@ export default function App() {
     <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '')}>
       <Suspense fallback={null}>
         <Routes>
-          {/* Public kiosk monitor — intentionally has no link to /admin */}
+          {/* Public kiosk monitor — intentionally has no link to /dashboard or /settings */}
           <Route path="/" element={<MonitorPage />} />
 
-          {/* Tech-support area (deployment/maintenance only) */}
-          <Route path="/admin/login" element={<AdminLogin />} />
+          {/* Client-facing dashboard: read-only thresholds + event log, no
+              login — only /settings (IT support) is gated. */}
+          <Route path="/dashboard" element={<DashboardPage />} />
+
+          {/* IT-support settings: editable thresholds, password change, event log */}
           <Route
-            path="/admin"
+            path="/settings/login"
             element={
-              <RequireAuth>
-                <AdminPage />
+              <TechLogin
+                redirectTo="/settings"
+                title="Tech support access"
+                subtitle="Sign in with the device administrator credentials to configure thresholds and review the event log."
+              />
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <RequireAuth loginPath="/settings/login">
+                <SettingsPage />
               </RequireAuth>
             }
           />

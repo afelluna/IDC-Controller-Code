@@ -1,29 +1,22 @@
 import { useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../auth/useAuth';
+import { Link } from 'react-router-dom';
 import usherMarker from '../assets/usher-marker.svg';
 import { Icon } from '../components/ui/Icon';
-import { ThresholdSettings } from '../components/admin/ThresholdSettings';
-import { ChangePassword } from '../components/admin/ChangePassword';
+import { ThresholdView } from '../components/admin/ThresholdView';
 import { EventList } from '../components/admin/EventList';
 
 /**
- * Tech-support dashboard — threshold configuration, admin password change, and
- * the event log. Guarded by RequireAuth; reached only by direct navigation.
+ * Client-facing dashboard — read-only threshold display and the event log.
+ * No editing controls (no threshold form, no password change) and no
+ * login — that gate only applies to the IT-support surface at /settings
+ * (SettingsPage). Reached only by direct navigation; the kiosk monitor
+ * never links here.
  */
-export default function AdminPage() {
-  const navigate = useNavigate();
-  const { logout } = useAuth();
-
+export default function DashboardPage() {
   useEffect(() => {
     const theme = (localStorage.getItem('usher-theme') as 'light' | 'dark') || 'light';
     document.documentElement.dataset.theme = theme;
   }, []);
-
-  const onLogout = () => {
-    logout();
-    navigate('/admin/login', { replace: true });
-  };
 
   return (
     <div className="h-screen overflow-y-auto font-sans" style={{ backgroundColor: 'var(--bg-base)' }}>
@@ -41,10 +34,10 @@ export default function AdminPage() {
           </div>
           <div className="flex flex-col leading-tight">
             <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-              Tech support dashboard
+              Client dashboard
             </span>
             <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-              Device configuration &amp; event log
+              Device status &amp; event log
             </span>
           </div>
         </div>
@@ -56,22 +49,12 @@ export default function AdminPage() {
           >
             <Icon name="monitor" size={14} /> Monitor
           </Link>
-          <button
-            onClick={onLogout}
-            className="rounded-lg px-3 py-2 text-xs font-semibold flex items-center gap-1.5 transition-colors"
-            style={{ backgroundColor: 'var(--bg-elevated)', color: 'var(--text-secondary)' }}
-          >
-            <Icon name="log-out" size={14} /> Sign out
-          </button>
         </div>
       </header>
 
       {/* Body */}
       <main className="max-w-5xl mx-auto p-4 sm:p-6 flex flex-col gap-4">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-          <ThresholdSettings />
-          <ChangePassword />
-        </div>
+        <ThresholdView />
         <EventList />
       </main>
     </div>

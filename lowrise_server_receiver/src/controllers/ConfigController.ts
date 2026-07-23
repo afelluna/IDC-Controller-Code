@@ -185,6 +185,27 @@ export class ConfigController{
     }
   }  
 
+  public async updateDeviceInfo(req: Request, res: Response, next: NextFunction){
+    try {
+
+      const { device_name, location, latitude, longitude } = req.body;
+
+      let sql = "UPDATE config_tbl SET device_name = ?, location = ?, latitude = ?, longitude = ?";
+
+      let param = [device_name, location, latitude, longitude];
+
+      db.query(sql, param).then(result => {
+        responseHandler.sendResponse(res, "Successfuly update device info", 200, false);
+      }).catch(err => {
+        responseHandler.sendResponse(res, "Error update device info", 200, true);
+      });
+
+    } catch (err){
+      logger.info("Error update device info "+err);
+      next(err)
+    }
+  }
+
   public async getDiskSpace(req: Request, res: Response, next: NextFunction){
     try {
 

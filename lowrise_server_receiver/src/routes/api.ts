@@ -118,6 +118,16 @@ router.post('/updateIntensity', [
 
 
 
+router.post('/updateDeviceInfo', [
+		check('device_name', 'device_name is required').not().isEmpty(),
+		check('location', 'location is required').not().isEmpty(),
+		check('latitude', 'latitude is required').isFloat(),
+		check('longitude', 'longitude is required').isFloat(),
+	], (req: Request, res: Response, next: NextFunction) => {
+		validate(req, res, next);
+	}, configCtrl.updateDeviceInfo.bind(configCtrl));
+
+
 router.get('/getDiskSpace', [
 	], (req: Request, res: Response, next: NextFunction) => {
 		validate(req, res, next);

@@ -35,6 +35,16 @@ export const seismicApi = {
   }): Promise<BackendResponse<any>> =>
     apiClient.post('/updateIntensity', payload),
 
+  // Update device identity/location (name, location label, lat/long) — used
+  // for report generation (event log entries carry where the device sits).
+  updateDeviceInfo: (payload: {
+    device_name: string;
+    location: string;
+    latitude: number;
+    longitude: number;
+  }): Promise<BackendResponse<any>> =>
+    apiClient.post('/updateDeviceInfo', payload),
+
   // Calibrate the sensor
   calibrate: (): Promise<BackendResponse<any>> =>
     apiClient.post('/calibrate'),

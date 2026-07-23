@@ -5,12 +5,20 @@ import { Icon } from '../components/ui/Icon';
 import { useAuth } from '../auth/useAuth';
 import usherMarker from '../assets/usher-marker.svg';
 
+interface TechLoginProps {
+  /** Route to land on after a successful sign-in. */
+  redirectTo: string;
+  title: string;
+  subtitle: string;
+}
+
 /**
- * Tech-support login. Posts to /loginUser; on success lands on /admin.
- * Reached only by navigating directly to /admin or /admin/login — the kiosk
- * monitor never links here.
+ * Shared login screen for both tech-support areas (/dashboard, /settings).
+ * Posts to /loginUser via useAuth — both areas gate on the same single
+ * device admin credential (see useAuth.ts), so this component only differs
+ * per area in copy and where it lands after signing in.
  */
-export default function AdminLogin() {
+export default function TechLogin({ redirectTo, title, subtitle }: TechLoginProps) {
   const navigate = useNavigate();
   const { login } = useAuth();
 
@@ -19,7 +27,7 @@ export default function AdminLogin() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // The admin pages don't carry the kiosk theme toggle; honour the saved theme.
+  // These pages don't carry the kiosk theme toggle; honour the saved theme.
   useEffect(() => {
     const theme = (localStorage.getItem('usher-theme') as 'light' | 'dark') || 'light';
     document.documentElement.dataset.theme = theme;
@@ -33,7 +41,7 @@ export default function AdminLogin() {
     try {
       const res = await login(username, password);
       if (res.ok) {
-        navigate('/admin', { replace: true });
+        navigate(redirectTo, { replace: true });
       } else {
         setError(res.message || 'Invalid username or password');
       }
@@ -60,11 +68,10 @@ export default function AdminLogin() {
               <img src={usherMarker} alt="USHER" className="h-6 w-auto brightness-0 invert" />
             </div>
             <h1 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>
-              Tech support access
+              {title}
             </h1>
             <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-              Sign in with the device administrator credentials to configure
-              thresholds and review the event log.
+              {subtitle}
             </p>
           </div>
 

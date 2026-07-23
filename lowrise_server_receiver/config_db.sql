@@ -41,15 +41,19 @@ CREATE TABLE `config_tbl` (
   `admin_def_pass` varchar(50) NOT NULL,
   `ctrlip` varchar(50) NOT NULL,
   `ctrlport` varchar(50) NOT NULL,
-  `node_name` varchar(50) NOT NULL
+  `node_name` varchar(50) NOT NULL,
+  `device_name` varchar(100) DEFAULT NULL,
+  `location` varchar(255) DEFAULT NULL,
+  `latitude` double DEFAULT NULL,
+  `longitude` double DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 --
 -- Dumping data for table `config_tbl`
 --
 
-INSERT INTO `config_tbl` (`xthold`, `ythold`, `zthold`, `warning`, `warrant`, `usep`, `tafter`, `tbefore`, `admin_def_username`, `admin_def_pass`, `ctrlip`, `ctrlport`, `node_name`) VALUES
-(0.4, 0.4, 0.4, 4, 5, 0, 22, 22, 'usher', 'usher', '192.168.10.200', '3000', 'usher02');
+INSERT INTO `config_tbl` (`xthold`, `ythold`, `zthold`, `warning`, `warrant`, `usep`, `tafter`, `tbefore`, `admin_def_username`, `admin_def_pass`, `ctrlip`, `ctrlport`, `node_name`, `device_name`, `location`, `latitude`, `longitude`) VALUES
+(0.4, 0.4, 0.4, 4, 5, 0, 22, 22, 'usher', 'usher', '192.168.10.200', '3000', 'usher02', NULL, NULL, NULL, NULL);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

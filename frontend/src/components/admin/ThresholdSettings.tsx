@@ -6,8 +6,8 @@ import { seismicApi } from '../../api/seismicApi';
 type Fields = 'warning' | 'warrant' | 'xthold' | 'ythold' | 'zthold';
 
 const FIELD_META: { key: Fields; label: string; hint: string; step: string }[] = [
-  { key: 'warning', label: 'Warning level', hint: 'PEIS level that raises a warning', step: '1' },
-  { key: 'warrant', label: 'Alert level', hint: 'PEIS level that raises an alert', step: '1' },
+  { key: 'warning', label: 'Warrant 1', hint: 'PEIS level that raises Warrant 1', step: '1' },
+  { key: 'warrant', label: 'Warrant 2', hint: 'PEIS level that raises Warrant 2', step: '1' },
   { key: 'xthold', label: 'X threshold', hint: 'X-axis acceleration threshold (g)', step: '0.0001' },
   { key: 'ythold', label: 'Y threshold', hint: 'Y-axis acceleration threshold (g)', step: '0.0001' },
   { key: 'zthold', label: 'Z threshold', hint: 'Z-axis acceleration threshold (g)', step: '0.0001' },
