@@ -2,6 +2,8 @@ import apiClient from './client';
 import type {
   BackendResponse,
   SensorConfig,
+  HistoryEventRow,
+  WaveformSegmentResponse,
 } from './types';
 
 export const seismicApi = {
@@ -9,16 +11,19 @@ export const seismicApi = {
   getSensorConfig: (): Promise<BackendResponse<SensorConfig>> =>
     apiClient.get('/getSensorConfig'),
 
-  // Get seismic events history
-  getSeismicEvents: (): Promise<BackendResponse<any>> =>
+  // Get seismic events history. Unlike getHistoryMax/getAllHistoryMax, these
+  // rows' `path` points to a per-sample-log directory, so this is the only
+  // history endpoint whose rows can feed getWaveformDuring/getWaveformAfter.
+  // Capped server-side at the 6 most-recent events, no "load all" variant.
+  getSeismicEvents: (): Promise<BackendResponse<{ history: HistoryEventRow[] }>> =>
     apiClient.get('/getHistory'),
 
   // Get maximum intensity history (paged)
-  getHistoryMax: (): Promise<BackendResponse<any>> =>
+  getHistoryMax: (): Promise<BackendResponse<{ history: HistoryEventRow[] }>> =>
     apiClient.get('/getHistoryMax'),
 
   // Get all maximum intensity history
-  getAllHistoryMax: (): Promise<BackendResponse<any>> =>
+  getAllHistoryMax: (): Promise<BackendResponse<{ history: HistoryEventRow[] }>> =>
     apiClient.get('/getAllHistoryMax', undefined, { timeout: 180000 }),
 
   // Get storage/disk space information
@@ -59,16 +64,25 @@ export const seismicApi = {
   changePassword: (newpassword: string): Promise<BackendResponse<any>> =>
     apiClient.post('/changePass', { newpassword }),
 
-  // Get waveform data before an event
-  getWaveformBefore: (eventId: string, path: string): Promise<BackendResponse<any>> =>
+  // Reads the full raw per-sample content of a single event's .log file.
+  // Despite the endpoint name (intended for a per-sample-directory "before"
+  // segment), the backend's getBefore appends ".log" to `path` and reads it
+  // as one flat file — which is exactly the max-event summary file EventList
+  // already points at via `path`. Pass path WITHOUT the ".log" suffix (the
+  // backend adds it) to read that event's complete waveform in one call, no
+  // directory scan and no separate /getHistory cross-reference needed.
+  getWaveformBefore: (eventId: string, path: string): Promise<BackendResponse<WaveformSegmentResponse>> =>
     apiClient.post('/getBefore', { eventId, path }),
 
-  // Get waveform data during an event
-  getWaveformDuring: (eventId: string, path: string): Promise<BackendResponse<any>> =>
+  // Get waveform data during an event. Targets LOGS_EVENT_DIR/LOGS_UPLOADED_EVENT_DIR
+  // (a per-event directory of per-sample files) — a different, and on some
+  // deployments missing, directory pair than the one the event log itself
+  // reads from. Prefer getWaveformBefore for report generation.
+  getWaveformDuring: (eventId: string, path: string): Promise<BackendResponse<WaveformSegmentResponse>> =>
     apiClient.post('/getDuring', { eventId, path }),
 
-  // Get waveform data after an event
-  getWaveformAfter: (eventId: string, path: string): Promise<BackendResponse<any>> =>
+  // Get waveform data after an event. See getWaveformDuring's note.
+  getWaveformAfter: (eventId: string, path: string): Promise<BackendResponse<WaveformSegmentResponse>> =>
     apiClient.post('/getAfter', { eventId, path }),
 
   // Download a backup zip/log for a specific date and hour

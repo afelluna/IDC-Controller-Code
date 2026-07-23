@@ -14,6 +14,28 @@ export const INTENSITY_SCALE: IntensityScaleItem[] = [
   { level: 10, label: '10', range: '>1.24', color: '#c80000', text: '#ffffff' },
 ];
 
+// Parses a range string like "<0.0017", "0.0017 - 0.005", or ">1.24" into
+// numeric bounds for lookupPeisFromPga.
+function parseIntensityRange(range: string): { min: number; max: number } {
+  const r = range.trim();
+  if (r.startsWith('<')) return { min: -Infinity, max: parseFloat(r.slice(1)) };
+  if (r.startsWith('>')) return { min: parseFloat(r.slice(1)), max: Infinity };
+  const [minStr, maxStr] = r.split('-').map((s) => s.trim());
+  return { min: parseFloat(minStr), max: parseFloat(maxStr) };
+}
+
+// Cross-references a PGA reading (g) against the PEIS scale's own
+// acceleration ranges to determine which level that reading corresponds to
+// — independent of whatever PEIS level the device separately logged.
+export function lookupPeisFromPga(pgaG: number) {
+  const abs = Math.abs(pgaG);
+  for (const item of INTENSITY_SCALE) {
+    const { min, max } = parseIntensityRange(item.range);
+    if (abs >= min && abs <= max) return item;
+  }
+  return INTENSITY_SCALE[INTENSITY_SCALE.length - 1];
+}
+
 // Intensity message logic
 export function getIntensityMessage(level: number) {
   if (level >= 10) return { title: "COMPLETELY DEVASTATING (X)", desc: "Some well-built wooden and most masonry structures destroyed with foundations." };

@@ -199,6 +199,10 @@
 }
 .peis-wave.delay { animation-delay: 0.8s; }
 
+.event-row:hover {
+  background-color: var(--bg-elevated);
+}
+
 @keyframes peis-breathe {
   0%, 100% { opacity: 0.20; transform: scale(1); }
   50%      { opacity: 0.50; transform: scale(1.04); }

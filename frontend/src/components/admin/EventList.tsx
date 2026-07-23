@@ -3,14 +3,10 @@ import { Card } from '../ui/Card';
 import { Icon } from '../ui/Icon';
 import { seismicApi } from '../../api/seismicApi';
 import { INTENSITY_SCALE } from '../../constants';
+import type { HistoryEventRow } from '../../api/types';
+import { EventReportModal } from './EventReportModal';
 
-interface HistoryRow {
-  event_unique_id: string;
-  path: string;
-  status: string;
-  intensity: number;
-  timestamp: number;
-}
+type HistoryRow = HistoryEventRow;
 
 const PAGE_SIZE = 20; // matches the legacy Angular table (tblRow=20)
 
@@ -46,6 +42,7 @@ export function EventList() {
   // Whether `rows` currently holds the full (unbounded) scan or just the
   // fast, recent-only default — drives the "Load full history" affordance.
   const [showingAll, setShowingAll] = useState(false);
+  const [selected, setSelected] = useState<HistoryRow | null>(null);
 
   // Default load: the same bounded /getHistoryMax the live dashboard's 30s
   // poll already uses (fast, fileCount-capped). /getAllHistoryMax scans
@@ -243,7 +240,12 @@ export function EventList() {
                 {pageRows.map((r) => {
                   const scale = INTENSITY_SCALE.find((i) => i.level === r.intensity) || INTENSITY_SCALE[0];
                   return (
-                    <tr key={r.event_unique_id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                    <tr
+                      key={r.event_unique_id}
+                      onClick={() => setSelected(r)}
+                      className="cursor-pointer event-row"
+                      style={{ borderBottom: '1px solid var(--border-subtle)' }}
+                    >
                       <td className="px-3 py-2 font-mono text-xs" style={{ color: 'var(--text-secondary)' }}>{fmtDate(r.timestamp)}</td>
                       <td className="px-3 py-2 font-mono text-xs" style={{ color: 'var(--text-primary)' }}>{fmtTime(r.timestamp)}</td>
                       <td className="px-3 py-2">
@@ -295,6 +297,8 @@ export function EventList() {
           </div>
         </div>
       )}
+
+      {selected && <EventReportModal row={selected} onClose={() => setSelected(null)} />}
     </Card>
   );
 }

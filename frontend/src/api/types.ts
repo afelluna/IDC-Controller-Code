@@ -22,6 +22,29 @@ export interface SensorConfig {
 
 export interface ApiResponse<T> extends BackendResponse<T> {}
 
+// A row from /getHistory (getSeismicEvents) or /getHistoryMax|/getAllHistoryMax.
+// Same row shape from all three, but `path` semantics differ: getHistory's path
+// is a per-sample-log directory (usable with getWaveformDuring/After); the
+// Max variants' path is a flat summary .log file (NOT usable with those).
+export interface HistoryEventRow {
+  event_unique_id: string;
+  path: string;
+  status: string;
+  intensity: number;
+  timestamp: number;
+}
+
+// One decoded per-sample row from /getDuring or /getAfter's `content` array.
+export type WaveformSampleTuple = [number, number, number, number, number, number]; // flag,timestamp,x,y,z,intensity
+
+export interface WaveformSegmentResponse {
+  pgaX: number;
+  pgaY: number;
+  pgaZ: number;
+  intensity: number;
+  content: WaveformSampleTuple[];
+}
+
 export interface PaginatedResponse<T> {
   data: T[];
   current_page: number;
