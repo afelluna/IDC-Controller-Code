@@ -159,10 +159,9 @@ export function buildEventReportPdf(data: EventReportData): jsPDF {
     const derivedTitle = getIntensityMessage(derived.level).title;
     doc.setFontSize(9);
     doc.setTextColor(SLATE);
-    const matchNote = derived.level === row.intensity ? 'matches logged PEIS level' : 'differs from logged PEIS level';
     doc.text(
       doc.splitTextToSize(
-        `Combined PGA magnitude (peak resultant of X/Y/Z) = ${waveform.pgaMagnitude.toFixed(4)} g corresponds to PEIS ${derived.level} (${derivedTitle}, range ${derived.range} g) — ${matchNote}.`,
+        `Peak PGA (largest axis reading) = ${waveform.pgaMagnitude.toFixed(4)} g corresponds to PEIS ${derived.level} (${derivedTitle}, range ${derived.range} g).`,
         180,
       ),
       marginX,

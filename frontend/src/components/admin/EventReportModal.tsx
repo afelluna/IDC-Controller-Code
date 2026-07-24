@@ -6,7 +6,6 @@ import type { HistoryEventRow, SensorConfig, WaveformSegmentResponse } from '../
 import { INTENSITY_SCALE, getIntensityMessage, lookupPeisFromPga } from '../../constants';
 import { getStructureInfo, type StructureInfo } from '../../lib/structureInfo';
 import { integrateAxis, sortedContent, peakGroundAcceleration } from '../../lib/waveformIntegration';
-import { peakAcceleration } from '../../lib/seismicMetrics';
 import { renderWaveformChartPng, AXIS_COLORS } from '../../lib/waveformChartImage';
 import { buildEventReportPdf, type EventReportData } from '../../lib/eventReportPdf';
 import { buildEventLogCsv, downloadEventLogCsv } from '../../lib/eventReportCsv';
@@ -83,19 +82,16 @@ export function EventReportModal({ row, onClose }: { row: HistoryEventRow; onClo
   }, [pga, sensorConfig]);
   const triggerAxes = breach ? (['x', 'y', 'z'] as const).filter((a) => breach[a]) : [];
 
-  // True simultaneous resultant PGA: max over samples of sqrt(x_i^2+y_i^2+z_i^2).
-  // NOT sqrt of the three independent per-axis peaks combined — those can occur
-  // at different instants and would overestimate the real resultant magnitude
-  // (which is what caused an earlier version of this to disagree with the
-  // device's own logged PEIS).
+  // The device (USHERv4.0/src/intensity.py: calcPEIS(max(reading))) buckets
+  // PEIS off the single largest per-axis reading, not a combined X/Y/Z
+  // resultant. Match that exactly — sqrt(x^2+y^2+z^2), whether combined
+  // per-sample or from the three independent per-axis peaks, is a different
+  // quantity that can run well above any individual axis reading and disagree
+  // with the device's own logged PEIS.
   const pgaMagnitude = useMemo(() => {
-    if (!waveform) return null;
-    const content = sortedContent(waveform);
-    const xs = content.map((r) => r[2]);
-    const ys = content.map((r) => r[3]);
-    const zs = content.map((r) => r[4]);
-    return peakAcceleration(xs, ys, zs);
-  }, [waveform]);
+    if (!pga) return null;
+    return Math.max(Math.abs(pga.x), Math.abs(pga.y), Math.abs(pga.z));
+  }, [pga]);
   const derivedPeis = pgaMagnitude !== null ? lookupPeisFromPga(pgaMagnitude) : null;
 
   const buildReportData = (): EventReportData => {
@@ -269,7 +265,7 @@ export function EventReportModal({ row, onClose }: { row: HistoryEventRow; onClo
                     </div>
                     {pgaMagnitude !== null && derivedPeis && (
                       <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                        Combined PGA magnitude <span className="font-mono">{pgaMagnitude.toFixed(4)} g</span> → PEIS{' '}
+                        Peak PGA (largest axis) <span className="font-mono">{pgaMagnitude.toFixed(4)} g</span> → PEIS{' '}
                         <span className="font-bold">{derivedPeis.level}</span> ({getIntensityMessage(derivedPeis.level).title}, range {derivedPeis.range} g).
                       </p>
                     )}
