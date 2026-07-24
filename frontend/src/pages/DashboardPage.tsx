@@ -34,7 +34,7 @@ export default function DashboardPage() {
           </div>
           <div className="flex flex-col leading-tight">
             <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-              Client dashboard
+              Dashboard
             </span>
             <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
               Device status &amp; event log

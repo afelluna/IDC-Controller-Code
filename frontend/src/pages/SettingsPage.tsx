@@ -6,12 +6,14 @@ import { Icon } from '../components/ui/Icon';
 import { ThresholdSettings } from '../components/admin/ThresholdSettings';
 import { ChangePassword } from '../components/admin/ChangePassword';
 import { DeviceSettings } from '../components/admin/DeviceSettings';
+import { StructureSettings } from '../components/admin/StructureSettings';
 
 /**
- * IT-support settings — threshold configuration, admin password change, and
- * device identity. Purely technical/configuration; the event log (and its
- * report-download popup) lives on the client-facing /dashboard instead.
- * Guarded by RequireAuth; reached only by direct navigation.
+ * IT-support settings — threshold configuration, admin password change,
+ * device identity, and structure identity. Purely technical/configuration;
+ * the event log (and its report-download popup) lives on the client-facing
+ * /dashboard instead. Guarded by RequireAuth; reached only by direct
+ * navigation.
  */
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -46,7 +48,7 @@ export default function SettingsPage() {
               Tech support settings
             </span>
             <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-              Device configuration
+              Device &amp; structure configuration
             </span>
           </div>
         </div>
@@ -73,6 +75,7 @@ export default function SettingsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
           <ThresholdSettings />
           <ChangePassword />
+          <StructureSettings />
           <DeviceSettings />
         </div>
       </main>

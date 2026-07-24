@@ -530,30 +530,21 @@ export class UploadController{
 
       this.uploadedCount = uploadedFile.length;
 
-      // Count unuploaded events up front so the total is always accurate.
-      // (Previously this was only computed inside the paging branch below, so
-      //  with >= fileCount uploaded events it kept returning a stale value.)
+      // Always scan both folders — uploaded and unuploaded events are merged
+      // and sorted by recency before paging, rather than only backfilling
+      // from the unuploaded folder when uploaded events don't fill the page
+      // (that backfill never ran once uploadedFile had >= fileCount entries,
+      // which is the common case, so unuploaded events never appeared).
       let unuploadedFile = safeReaddir(basePath+paths[0]);
 
       this.unuploadedCount = unuploadedFile.length;
 
-      uploadedFile.reverse();
+      let uploadedMapped = this.mapArray(uploadedFile, basePath+paths[1], "uploaded");
+      let unuploadedMapped = this.mapArray(unuploadedFile, basePath+paths[0], "unuploaded");
 
-      this.pathsList = this.mapArray(uploadedFile.slice(0, this.fileCount), basePath+paths[1], "uploaded");
-
-      if (this.pathsList.length < this.fileCount) {
-
-        let lengthToFetch = this.fileCount - this.pathsList.length;
-
-        unuploadedFile.reverse();
-
-        let concatEvent = this.mapArray(unuploadedFile.slice(0, lengthToFetch), basePath+paths[0], "unuploaded");
-
-        for(let x = 0; x < concatEvent.length; x++){
-          this.pathsList.push(concatEvent[x]);
-        }
-
-      }
+      this.pathsList = uploadedMapped.concat(unuploadedMapped)
+        .sort((a: any, b: any) => b.timestamp - a.timestamp)
+        .slice(0, this.fileCount);
 
       this.getPathDatas(this.pathsList, res, next);
 
@@ -967,27 +958,18 @@ export class UploadController{
 
       this.uploadedCount = uploadedFile.length;
 
-      uploadedFile.reverse();
+      // Always scan both folders and merge by recency — see getHistoryMax's
+      // comment for why the old "backfill only if uploaded < fileCount" gate
+      // meant unuploaded events never showed up in practice.
+      let unuploadedFile = fs.readdirSync(basePath+paths[0]);
 
-      this.pathsList = this.mapArrayMax(uploadedFile, basePath+paths[1], "uploaded");
+      this.unuploadedCount = unuploadedFile.length;
 
-      if (this.pathsList.length < this.fileCount) {
+      let uploadedMapped = this.mapArrayMax(uploadedFile, basePath+paths[1], "uploaded");
+      let unuploadedMapped = this.mapArrayMax(unuploadedFile, basePath+paths[0], "unuploaded");
 
-        let lengthToFetch = this.fileCount - this.pathsList.length;
-
-        let unuploadedFile = fs.readdirSync(basePath+paths[0]);
-
-        this.unuploadedCount = unuploadedFile.length;
-
-        unuploadedFile.reverse();
-
-        let concatEvent = this.mapArrayMax(unuploadedFile, basePath+paths[0], "unuploaded");
-
-        for(let x = 0; x < concatEvent.length; x++){
-          this.pathsList.push(concatEvent[x]);
-        }
-
-      }
+      this.pathsList = uploadedMapped.concat(unuploadedMapped)
+        .sort((a: any, b: any) => b.timestamp - a.timestamp);
 
       this.getPathDatasMax(this.pathsList, res, next);
 
@@ -1012,28 +994,19 @@ export class UploadController{
 
       this.uploadedCount = uploadedFile.length;
 
-      uploadedFile.reverse();
+      // Always scan both folders and merge by recency — see getAllHistoryMax's
+      // comment for why the old "backfill only if uploaded < fileCount" gate
+      // meant unuploaded events never showed up in practice.
+      let unuploadedFile = fs.readdirSync(basePath+paths[0]);
 
-      this.pathsList = this.mapArrayMax(uploadedFile.slice(0, this.fileCount), basePath+paths[1], "uploaded");
+      this.unuploadedCount = unuploadedFile.length;
 
-      if (this.pathsList.length < this.fileCount) {
+      let uploadedMapped = this.mapArrayMax(uploadedFile, basePath+paths[1], "uploaded");
+      let unuploadedMapped = this.mapArrayMax(unuploadedFile, basePath+paths[0], "unuploaded");
 
-        let lengthToFetch = this.fileCount - this.pathsList.length;
-
-        let unuploadedFile = fs.readdirSync(basePath+paths[0]);
-
-        this.unuploadedCount = unuploadedFile.length;
-
-        unuploadedFile.reverse();
-
-        let concatEvent = this.mapArrayMax(unuploadedFile.slice(0, lengthToFetch), basePath+paths[0], "unuploaded");
-
-        for(let x = 0; x < concatEvent.length; x++){
-          this.pathsList.push(concatEvent[x]);
-        }
-
-      }
-
+      this.pathsList = uploadedMapped.concat(unuploadedMapped)
+        .sort((a: any, b: any) => b.timestamp - a.timestamp)
+        .slice(0, this.fileCount);
 
       this.getPathDatasMax(this.pathsList, res, next);
 

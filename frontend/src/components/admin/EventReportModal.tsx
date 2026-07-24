@@ -4,7 +4,7 @@ import { Icon } from '../ui/Icon';
 import { seismicApi } from '../../api/seismicApi';
 import type { HistoryEventRow, SensorConfig, WaveformSegmentResponse } from '../../api/types';
 import { INTENSITY_SCALE, getIntensityMessage, lookupPeisFromPga } from '../../constants';
-import { getDeviceInfo, type DeviceInfo } from '../../lib/deviceInfo';
+import { getStructureInfo, type StructureInfo } from '../../lib/structureInfo';
 import { integrateAxis, sortedContent, peakGroundAcceleration } from '../../lib/waveformIntegration';
 import { peakAcceleration } from '../../lib/seismicMetrics';
 import { renderWaveformChartPng, AXIS_COLORS } from '../../lib/waveformChartImage';
@@ -23,7 +23,7 @@ export function EventReportModal({ row, onClose }: { row: HistoryEventRow; onClo
   const [status, setStatus] = useState<Status>('loading');
   const [sensorConfig, setSensorConfig] = useState<SensorConfig | null>(null);
   const [waveform, setWaveform] = useState<WaveformSegmentResponse | null>(null);
-  const deviceInfo: DeviceInfo | null = getDeviceInfo();
+  const structureInfo: StructureInfo | null = getStructureInfo();
 
   useEffect(() => {
     let cancelled = false;
@@ -100,7 +100,7 @@ export function EventReportModal({ row, onClose }: { row: HistoryEventRow; onClo
 
   const buildReportData = (): EventReportData => {
     if (!waveform || !pga || pgaMagnitude === null) {
-      return { row, sensorConfig, deviceInfo, waveform: null };
+      return { row, sensorConfig, structureInfo, waveform: null };
     }
     const merged = sortedContent(waveform);
     const timestamps = merged.map((r) => r[1]);
@@ -117,7 +117,7 @@ export function EventReportModal({ row, onClose }: { row: HistoryEventRow; onClo
     return {
       row,
       sensorConfig,
-      deviceInfo,
+      structureInfo,
       waveform: {
         pga,
         pgaMagnitude,
@@ -205,16 +205,18 @@ export function EventReportModal({ row, onClose }: { row: HistoryEventRow; onClo
               <>
                 <section>
                   <h3 className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-secondary)' }}>
-                    Device identity
+                    Structure information
                   </h3>
-                  {deviceInfo ? (
+                  {structureInfo ? (
                     <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div style={{ color: 'var(--text-muted)' }}>Name</div>
-                      <div style={{ color: 'var(--text-primary)' }}>{deviceInfo.device_name}</div>
+                      <div style={{ color: 'var(--text-muted)' }}>Name of structure</div>
+                      <div style={{ color: 'var(--text-primary)' }}>{structureInfo.structure_name}</div>
+                      <div style={{ color: 'var(--text-muted)' }}>Building type</div>
+                      <div style={{ color: 'var(--text-primary)' }}>{structureInfo.building_type}</div>
                       <div style={{ color: 'var(--text-muted)' }}>Location</div>
-                      <div style={{ color: 'var(--text-primary)' }}>{deviceInfo.location}</div>
+                      <div style={{ color: 'var(--text-primary)' }}>{structureInfo.location}</div>
                       <div style={{ color: 'var(--text-muted)' }}>Coordinates</div>
-                      <div style={{ color: 'var(--text-primary)' }}>{deviceInfo.latitude}, {deviceInfo.longitude}</div>
+                      <div style={{ color: 'var(--text-primary)' }}>{structureInfo.latitude}, {structureInfo.longitude}</div>
                     </div>
                   ) : (
                     <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Not configured — set this in /settings.</p>
@@ -268,11 +270,19 @@ export function EventReportModal({ row, onClose }: { row: HistoryEventRow; onClo
                     {pgaMagnitude !== null && derivedPeis && (
                       <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                         Combined PGA magnitude <span className="font-mono">{pgaMagnitude.toFixed(4)} g</span> → PEIS{' '}
-                        <span className="font-bold">{derivedPeis.level}</span> ({getIntensityMessage(derivedPeis.level).title}, range {derivedPeis.range} g)
-                        {derivedPeis.level === row.intensity ? ' — matches logged PEIS.' : ' — differs from logged PEIS.'}
+                        <span className="font-bold">{derivedPeis.level}</span> ({getIntensityMessage(derivedPeis.level).title}, range {derivedPeis.range} g).
                       </p>
                     )}
                   </section>
+                )}
+
+                {status === 'ready-degraded' && (
+                  <div
+                    className="text-xs font-medium rounded-lg px-3 py-2"
+                    style={{ backgroundColor: 'rgba(193,96,92,0.10)', color: 'var(--status-error)' }}
+                  >
+                    Waveform data unavailable — this event's log file could not be read from the device. Summary above is still accurate.
+                  </div>
                 )}
 
                 <section>
@@ -291,19 +301,6 @@ export function EventReportModal({ row, onClose }: { row: HistoryEventRow; onClo
                   )}
                 </section>
 
-                {status === 'ready-degraded' && (
-                  <div
-                    className="text-xs font-medium rounded-lg px-3 py-2"
-                    style={{ backgroundColor: 'rgba(193,96,92,0.10)', color: 'var(--status-error)' }}
-                  >
-                    Disclaimer: waveform data unavailable — this event's log file could not be read from the device. Summary above is still accurate.
-                  </div>
-                )}
-                {pga && (
-                  <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                    Disclaimer: velocity and displacement in the PDF/CSV are derived from raw acceleration via numerical integration and are approximate.
-                  </p>
-                )}
               </>
             )}
           </div>
